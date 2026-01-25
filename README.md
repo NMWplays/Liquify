@@ -17,6 +17,8 @@
 
 **Liquify** - is a glassmorphic Spicetify theme for Spotify featuring a modern, luminous interface and smooth animations.
 
+Liquify is inspired by Glassify from [sanoojes](https://github.com/sanoojes)
+
 If your transparent controls don’t look fully transparent — for example when zooming in on Spotify — you can easily change the width and height of them in the Glowify Settings to make them fully transparent again.
 
 If you like the theme, consider starring the repository on GitHub! ⭐
