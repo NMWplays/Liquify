@@ -1,0 +1,13 @@
+{
+  "name": "Liquify",
+  "description": "A modern, rounded and liquified theme for Spicetify.",
+  "preview": "preview.png",
+  "readme": "README.md",
+  "usercss": "https://nmwplays.github.io/Liquify/user.css",
+  "schemes": "color.ini",
+  "include": ["https://nmwplays.github.io/Liquify/theme.js", "https://nmwplays.github.io/Glowify/liquify-settings.js"],
+  "authors": [
+    { "name": "NMWplays", "url": "https://github.com/NMWplays" }
+  ],
+  "tags": ["dark", "rounded", "liquified"]
+}
