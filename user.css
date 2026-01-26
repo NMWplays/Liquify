@@ -181,15 +181,22 @@
 .main-globalNav-searchInputContainer .main-topBar-searchBar {
   background: transparent;
   box-shadow: var(--glass-shadow);
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
 }
 
 .Root__globalNav .main-globalNav-navLink {
   background: transparent;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+  transition: transform 0.3s ease !important;
 }
 
 .Root__globalNav .DoxYADBBjYMvoYwl7QPg {
   box-shadow: var(--glass-shadow);
   transition: transform 0.2s ease !important;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
 }
 
 .custom-navlinks-scrollable_container {
@@ -224,10 +231,10 @@
 .view-homeShortcutsGrid-shortcut {
   border-radius: 20px;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: var(--glass-shadow);
 }
 
 .view-homeShortcutsGrid-shortcut:hover {
-  box-shadow: var(--glass-shadow);
   transform: scale(1.03);
 }
 
@@ -260,12 +267,15 @@
 .main-card-cardContainer {
   border-radius: 20px;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: var(--glass-shadow);
+  margin-left: 5px;
+  margin-right: 5px;
+  scale: 1.02;
 }
 
 .main-card-cardContainer:hover {
   border-radius: 20px;
-  box-shadow: var(--glass-shadow);
-  transform: scale(1.01);
+  transform: scale(1.02);
 }
 
 .wuQsKLTukGW5aeEAHxiu .XkDqS8M3CEkouTbj8y5H {
@@ -410,6 +420,8 @@ img.main-image-image.main-trackList-rowImage.main-image-loaded {
 
 .main-userWidget-box {
   box-shadow: var(--glass-shadow);
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
 }
 
 .UCyimCp8rEfL5nB8paBu,
@@ -779,6 +791,8 @@ a.main-contextMenu-menuItemButton:hover {
   background-color: transparent !important;
   border-radius: 15px !important;
   box-shadow: var(--glass-shadow);
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
 }
 
 .marketplace-header {
@@ -2767,4 +2781,8 @@ main section .search-searchCategory-categoryGrid {
       box-shadow: var(--glass-shadow);
     }
   }
+}
+
+.XaEbPDaeLKeVysqGGwS5 {
+  border-radius: 20px;
 }
