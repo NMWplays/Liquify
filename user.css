@@ -232,6 +232,9 @@
   border-radius: 20px;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
   box-shadow: var(--glass-shadow);
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+  background-color: transparent;
 }
 
 .view-homeShortcutsGrid-shortcut:hover {
