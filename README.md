@@ -23,6 +23,12 @@ If your transparent controls don’t look fully transparent — for example when
 
 If you like the theme, consider starring the repository on GitHub! ⭐
 
+**For support join the Discord!**:
+
+<a href="https://discord.gg/QRMnrgjhvq" target="_blank">
+  <img src="discord-icon.png" alt="Discord-server-link" width="64" />
+</a>
+
 ## Theme screenshots
 
 <details>
