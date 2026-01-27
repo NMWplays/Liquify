@@ -701,6 +701,12 @@ img.main-image-image.main-trackList-rowImage.main-image-loaded {
 .x-filterBox-expandedOrHasFilter .x-filterBox-filterInput:placeholder-shown {
   border-radius: 20px;
   box-shadow: var(--glass-shadow);
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+}
+
+.x-filterBox-filterInput {
+  background-color: transparent;
 }
 
 .main-contextMenu-menu {
@@ -2147,7 +2153,7 @@ dialog::backdrop {
 .main-watchFeed-modal {
   background-color: transparent;
   --glass-filter: url(#glass-filter--r1-7);
-  backdrop-filter: var(--glass-filter) blur(2px);
+  backdrop-filter: var(--glass-filter) blur(10px);
 }
 
 .main-watchFeed-container {
@@ -2172,6 +2178,7 @@ dialog::backdrop {
 
 .main-watchFeed-imageWrapper:after {
   border-radius: 30px;
+  box-shadow: var(--glass-shadow);
 }
 
 .main-watchFeed-imageWrapper {
