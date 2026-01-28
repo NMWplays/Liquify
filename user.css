@@ -2055,7 +2055,7 @@ span.e-91000-text.encore-text-body-medium.encore-internal-color-text-base {
 
 dialog {
   --glass-filter: url(#glass-filter--r1-7);
-  backdrop-filter: var(--glass-filter) blur(2px);
+  backdrop-filter: var(--glass-filter) blur(5px);
   border-radius: 20px;
   box-shadow: var(--glass-shadow);
 }
