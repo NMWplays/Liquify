@@ -2435,7 +2435,7 @@ aside video {
   transition: transform 0.3s ease, box-shadow 0.3s ease !important;
 }
 
-.e-91000-button:hover {
+.e-91000-button {
   &:after {
     content: "";
     height: 100%;
