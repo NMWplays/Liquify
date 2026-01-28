@@ -2432,7 +2432,20 @@ aside video {
 }
 
 .e-91000-button {
-  transition: transform 0.2s ease !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.e-91000-button:hover {
+  &:after {
+    content: "";
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: 50px;
+  }
 }
 
 .L7Q0vlYYEzm_VlplzWgI:hover>:first-child {
