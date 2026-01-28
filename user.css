@@ -2813,3 +2813,17 @@ main section .search-searchCategory-categoryGrid {
 .XaEbPDaeLKeVysqGGwS5 {
   border-radius: 20px;
 }
+
+/*Button Shadow*/
+.encore-dark-theme .encore-bright-accent-set {
+  &:after {
+    content: "";
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: inherit;
+  }
+}
