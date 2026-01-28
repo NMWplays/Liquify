@@ -877,6 +877,8 @@ a.main-contextMenu-menuItemButton:hover {
   background-color: transparent !important;
   --glass-filter: url(#glass-filter--r1-7);
   backdrop-filter: var(--glass-filter) blur(2px);
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 .main-card-card {
