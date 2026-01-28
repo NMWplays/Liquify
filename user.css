@@ -2831,3 +2831,20 @@ main section .search-searchCategory-categoryGrid {
     border-radius: inherit;
   }
 }
+
+#marketplace-readme details {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  border-radius: 12px;
+}
+
+#marketplace-readme summary {
+  background-color: transparent;
+}
+
+#marketplace-readme code {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  border-radius: 8px;
+  border: none !important;
+}
