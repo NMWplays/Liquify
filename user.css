@@ -1035,9 +1035,6 @@ img.marketplace-customCSS-image-preview {
 .main-trackCreditsModal-container {
   background-color: transparent !important;
   border-radius: 20px !important;
-  --glass-filter: url(#glass-filter--r1-7);
-  backdrop-filter: var(--glass-filter) blur(2px);
-  box-shadow: var(--glass-shadow);
 }
 
 .button-module__button___hf2qg_marketplace {
