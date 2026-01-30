@@ -1242,10 +1242,10 @@ img.marketplace-customCSS-image-preview {
 
 .LegacyChip__LegacyChipComponent-sc-tzfq94-0>.ChipInnerComponent-sm.ChipInnerComponent-sm {
   transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+  box-shadow: var(--glass-shadow);
 }
 
 .LegacyChip__LegacyChipComponent-sc-tzfq94-0:hover>.ChipInnerComponent-sm.ChipInnerComponent-sm {
-  box-shadow: var(--glass-shadow);
   transform: scale(1.01);
 }
 
