@@ -247,13 +247,13 @@
   transition: box-shadow 0.3s ease, transform 0.3s ease;
   --box-hover-background-color: transparent !important;
   --box-active-background-color: transparent !important;
+  box-shadow: var(--glass-shadow);
 }
 
 .PromotionDefaultNative-module_card-container__Y90Vl:focus,
 .PromotionDefaultNative-module_card-container__Y90Vl:hover {
   border-radius: 20px;
   background-color: transparent;
-  box-shadow: var(--glass-shadow);
   transform: scale(1.01);
 }
 
