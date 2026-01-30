@@ -540,10 +540,10 @@ img.main-image-image.main-trackList-rowImage.main-image-loaded {
 .Wwot_NoO8I52DIWFsJtA {
   border-radius: 20px;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
+  box-shadow: var(--glass-shadow);
 }
 
 .Wwot_NoO8I52DIWFsJtA:hover {
-  box-shadow: var(--glass-shadow);
   transform: translateY(-1px);
 }
 
@@ -1086,10 +1086,6 @@ img.marketplace-customCSS-image-preview {
 
 .LegacyChip__LegacyChipComponent-sc-tzfq94-0>.ChipInnerComponent-sm-selected.ChipInnerComponent-sm-selected {
   transition: box-shadow 0.3s ease !important;
-}
-
-.LegacyChip__LegacyChipComponent-sc-tzfq94-0:hover>.ChipInnerComponent-sm-selected.ChipInnerComponent-sm-selected {
-  box-shadow: var(--glass-shadow);
 }
 
 .iyhPyoc2dxd1Eno74TCO {
@@ -2844,4 +2840,25 @@ main section .search-searchCategory-categoryGrid {
   box-shadow: var(--glass-shadow);
   border-radius: 8px;
   border: none !important;
+}
+
+.JSUxUPMQnKVw9_8uWETt {
+  background-color: transparent;
+}
+
+.pZv7o3WiYmBZZUUd_k1y {
+  background-image: none;
+}
+
+.ChipInnerComponent-sm-selected {
+  &:after {
+    content: "";
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: inherit;
+  }
 }
