@@ -2391,6 +2391,7 @@ div#lyrics-background-root {
   padding: 10px;
   --glass-filter: url(#glass-filter--r1-7);
   backdrop-filter: var(--glass-filter) blur(2px);
+  overflow: hidden;
 }
 
 .TqWNyOKcLVwGf3ACip7L,
@@ -4098,4 +4099,13 @@ span.e-10180-text.encore-text-body-medium.encore-internal-color-text-base {
 
 ._1_RTnc4byw00IbL .TLo_mZ7hWAaT3fsA, .UJhO24covsIMd2nP .TLo_mZ7hWAaT3fsA {
   background-color: transparent;
+}
+
+.x-settings-zoomContainer,
+.x-settings-zoomRadioWrapper{
+  background-color: transparent;
+}
+
+.x-settings-zoomButtonIconWrapper {
+  border-radius: 15px;
 }
