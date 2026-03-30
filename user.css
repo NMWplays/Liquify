@@ -4212,7 +4212,6 @@ body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5
 
 body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .BEeVmHj340c0PYHe {
   transition: none !important;
-  box-shadow: var(--glass-shadow) !important;
   backdrop-filter: var(--glass-filter) blur(2px) !important;
   isolation: none;
 }
@@ -4230,4 +4229,13 @@ body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-
 body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
   background-color: transparent !important;
   backdrop-filter: var(--glass-filter) blur(2px) !important;
+}
+
+body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div:has(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1) .main-nowPlayingView-mainContainer {
+  --sl_rsb-wrapperFade: none !important;
+  --push: none !important;
+  top: none !important;
+  top: (--push) !important;
+  margin-bottom: none !important;
+  margin-bottom: var(--push) !important;
 }
