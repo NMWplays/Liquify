@@ -4189,7 +4189,8 @@ body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5
   display: none;
 }
 
-.NowPlayingView:hover .main-nowPlayingView-headerCloseButton, .NowPlayingView:has(:focus-visible) .main-nowPlayingView-headerCloseButton {
+.NowPlayingView:hover .main-nowPlayingView-headerCloseButton,
+.NowPlayingView:has(:focus-visible) .main-nowPlayingView-headerCloseButton {
   opacity: 1 !important;
 }
 
@@ -4197,11 +4198,36 @@ body:has(aside.spicy-dynamic-bg-in-this) .main-nowPlayingView-actionButtonContai
   backdrop-filter: var(--glass-filter) blur(2px) !important;
 }
 
-body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type=button])), body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew .CvxzmyND_aGd2RR8ZoSr, body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .Uw4tcZdmh7s4BMdgCCuu, body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type=button])),
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew .CvxzmyND_aGd2RR8ZoSr,
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .Uw4tcZdmh7s4BMdgCCuu,
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
   background-color: transparent;
   backdrop-filter: var(--glass-filter) blur(2px) !important;
 }
 
 body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .BEeVmHj340c0PYHe:before {
   display: none;
+}
+
+body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .BEeVmHj340c0PYHe {
+  transition: none !important;
+  box-shadow: var(--glass-shadow) !important;
+  backdrop-filter: var(--glass-filter) blur(2px) !important;
+  isolation: none;
+}
+
+body:has(aside.spicy-dynamic-bg-in-this) .BEeVmHj340c0PYHe {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-bottom: 0px;
+  padding-bottom: 0px !important;
+}
+
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type=button])),
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew .CvxzmyND_aGd2RR8ZoSr,
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .Uw4tcZdmh7s4BMdgCCuu,
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas) .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
+  background-color: transparent !important;
+  backdrop-filter: var(--glass-filter) blur(2px) !important;
 }
