@@ -4184,3 +4184,7 @@ body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5
 aside .spicy-dynamic-bg {
   display: none !important;
 }
+
+body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .main-nowPlayingView-headerWrapper:before {
+  display: none;
+}
