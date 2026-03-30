@@ -4192,3 +4192,12 @@ body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5
 .NowPlayingView:hover .main-nowPlayingView-headerCloseButton, .NowPlayingView:has(:focus-visible) .main-nowPlayingView-headerCloseButton {
   opacity: 1 !important;
 }
+
+body:has(aside.spicy-dynamic-bg-in-this) .main-nowPlayingView-actionButtonContainer button {
+  backdrop-filter: var(--glass-filter) blur(2px) !important;
+}
+
+body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type=button])), body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew .CvxzmyND_aGd2RR8ZoSr, body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .Uw4tcZdmh7s4BMdgCCuu, body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section,canvas) .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
+  background-color: transparent;
+  backdrop-filter: var(--glass-filter) blur(2px) !important;
+}
