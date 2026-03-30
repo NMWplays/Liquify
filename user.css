@@ -4201,3 +4201,7 @@ body:not(.SpicyLyrics_StaticBackground) .Root__right-sidebar:has(.spicy-dynamic-
   background-color: transparent;
   backdrop-filter: var(--glass-filter) blur(2px) !important;
 }
+
+body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .BEeVmHj340c0PYHe:before {
+  display: none;
+}
