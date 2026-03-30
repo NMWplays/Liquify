@@ -4142,3 +4142,8 @@ span.e-10180-text.encore-text-body-medium.encore-internal-color-text-base {
   background-color: transparent;
 }
 
+
+button.e-10180-chip-clear {
+  box-shadow: var(--glass-shadow);
+  border: none;
+}
