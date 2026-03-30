@@ -4188,3 +4188,7 @@ aside .spicy-dynamic-bg {
 body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .main-nowPlayingView-headerWrapper:before {
   display: none;
 }
+
+.NowPlayingView:hover .main-nowPlayingView-headerCloseButton, .NowPlayingView:has(:focus-visible) .main-nowPlayingView-headerCloseButton {
+  opacity: 1 !important;
+}
