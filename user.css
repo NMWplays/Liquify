@@ -3411,13 +3411,15 @@ span.e-91000-text.encore-text-headline-large.encore-internal-color-text-base {
   box-shadow: var(--glass-shadow);
 }
 
-button#history-tab {
+button#history-tab,
+button#queue-tab {
   background-color: transparent;
   border-radius: 15px;
   transition: box-shadow 0.3s ease !important;
 }
 
-button#history-tab:hover {
+button#history-tab:hover,
+button#queue-tab:hover {
   box-shadow: var(--glass-shadow);
 }
 
@@ -4139,3 +4141,4 @@ span.e-10180-text.encore-text-body-medium.encore-internal-color-text-base {
 .oKUfo4h5iDMxrEqc.gjoRouaAyUze55LR:before {
   background-color: transparent;
 }
+
