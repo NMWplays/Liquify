@@ -4147,3 +4147,40 @@ button.e-10180-chip-clear {
   box-shadow: var(--glass-shadow);
   border: none;
 }
+
+.HUI6CvU5ny856tNF:focus {
+  background-color: transparent;
+  border: none;
+}
+
+.OUr81jGfhvY6Imgp {
+  background: transparent;
+  border: none;
+  border-radius: 15px;
+  box-shadow: var(--glass-shadow);
+}
+
+.GSLmzIakPmo7CDd3:focus,
+.GSLmzIakPmo7CDd3:focus {
+  background-color: transparent;
+  border: none;
+}
+
+body:has(aside.spicy-dynamic-bg-in-this) :not(.BEeVmHj340c0PYHe):not(.EnViFhuIR5WVeEopJHu3) .main-nowPlayingView-headerWrapper {
+  transition: backdrop-filter .5s ease;
+  box-shadow: var(--glass-shadow) !important;
+  backdrop-filter: var(--glass-filter) blur(2px) !important;
+  isolation: isolate;
+}
+
+.NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton {
+  transform: none;
+}
+
+.NowPlayingView .main-nowPlayingView-headerCloseButton {
+  opacity: 0 !important;
+}
+
+aside .spicy-dynamic-bg {
+  display: none !important;
+}
