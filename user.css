@@ -4239,3 +4239,7 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div:has(.pHNOePN5RT09ut
   margin-bottom: none !important;
   margin-bottom: var(--push) !important;
 }
+
+body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingView-mainContainer {
+  mask-image: none !important;
+}
