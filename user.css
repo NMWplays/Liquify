@@ -4252,3 +4252,11 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingVie
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImageContainer {
   border-radius: 25pxy;
 }
+
+.gpBiAnJHb1gq46qV {
+  background-color: transparent;
+  border-radius: 20px;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+  box-shadow: var(--glass-shadow);
+}
