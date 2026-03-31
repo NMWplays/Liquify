@@ -4261,3 +4261,18 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingVie
   backdrop-filter: var(--glass-filter) blur(2px);
   box-shadow: var(--glass-shadow);
 }
+
+.mwk3Wc6l_icG6VO7:focus-within, .mwk3Wc6l_icG6VO7 {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+}
+
+.mwk3Wc6l_icG6VO7:focus-within, .mwk3Wc6l_icG6VO7:hover {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  transform: scale(1.03);
+}
+
+.eF40gaa6JxEIjiCo {
+  border-radius: 12px;
+}
