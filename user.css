@@ -4243,3 +4243,12 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div:has(.pHNOePN5RT09ut
 body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingView-mainContainer {
   mask-image: none !important;
 }
+
+body:has(aside.spicy-dynamic-bg-in-this) .BEeVmHj340c0PYHe>div {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.BEeVmHj340c0PYHe {
+  box-shadow: 0 6px 10px #0009 !important;
+}
