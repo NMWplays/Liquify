@@ -4253,3 +4253,7 @@ body:has(aside.spicy-dynamic-bg-in-this) .BEeVmHj340c0PYHe>div {
 .BEeVmHj340c0PYHe {
   box-shadow: 0 6px 10px #0009 !important;
 }
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImageContainer {
+  border-radius: 25pxy;
+}
