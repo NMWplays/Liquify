@@ -4310,14 +4310,6 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingVie
   border-radius: 20px;
 }
 
-.e-10180-legacy-button {
-  transition: transform 0.3s ease !important;
-}
-
-.e-10180-legacy-button:hover {
-  transform: scale(1.05);
-}
-
 .TxuYI0km8swe8rcC {
   border-radius: 12px;
 }
