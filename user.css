@@ -1,4 +1,4 @@
-/* Liquify Glass-Surface CSS */
+﻿/* Liquify Glass-Surface CSS */
 
 .liquify-glass-overlay {
   position: absolute;
@@ -3795,7 +3795,7 @@ span.e-10180-overflow-wrap-anywhere.e-10180-button-primary__inner.encore-inverte
 .mcZzjuAJUvE9X4gX {
   background-color: transparent;
   --glass-filter: url(#glass-filter--r1-7);
-  backdrop-filter: var(--glass-filter) blur(2px);
+  backdrop-filter: var(--glass-filter) blur(10px);
 }
 
 .ZnAo42EPyLw72WLD {
@@ -4530,4 +4530,12 @@ button.e-10180-legacy-button.e-10180-legacy-button-tertiary.e-10180-overflow-wra
 .sdEd4DOwfUAWrygb.NizzRkDlGwELETrE {
   background-color: transparent;
   box-shadow: var(--glass-shadow);
+}
+
+.UNjF5Eut_HYQaNxH {
+  border-radius: 20px;
+}
+
+img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-image.TxuYI0km8swe8rcC {
+  border-radius: 15px;
 }
