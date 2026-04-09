@@ -4261,12 +4261,14 @@ body:has(aside.spicy-dynamic-bg-in-this) .NowPlayingView>div .main-nowPlayingVie
   box-shadow: var(--glass-shadow);
 }
 
-.mwk3Wc6l_icG6VO7:focus-within, .mwk3Wc6l_icG6VO7 {
+.mwk3Wc6l_icG6VO7:focus-within,
+.mwk3Wc6l_icG6VO7 {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border-radius: 20px;
 }
 
-.mwk3Wc6l_icG6VO7:focus-within, .mwk3Wc6l_icG6VO7:hover {
+.mwk3Wc6l_icG6VO7:focus-within,
+.mwk3Wc6l_icG6VO7:hover {
   background-color: transparent;
   box-shadow: var(--glass-shadow);
   transform: scale(1.03);
@@ -4539,3 +4541,11 @@ button.e-10180-legacy-button.e-10180-legacy-button-tertiary.e-10180-overflow-wra
 img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-image.TxuYI0km8swe8rcC {
   border-radius: 15px;
 }
+
+/*Extensions Quick Que Fix*/
+
+.main-trackList-trackListRowGrid {
+  grid-template-columns: var(--grid-template-columns) !important;
+}
+
+/*Extensions Quick Que Fix End*/
