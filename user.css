@@ -4541,11 +4541,3 @@ button.e-10180-legacy-button.e-10180-legacy-button-tertiary.e-10180-overflow-wra
 img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-image.TxuYI0km8swe8rcC {
   border-radius: 15px;
 }
-
-/*Extensions Quick Que Fix*/
-
-.main-trackList-trackListRowGrid {
-  grid-template-columns: var(--grid-template-columns) !important;
-}
-
-/*Extensions Quick Que Fix End*/
