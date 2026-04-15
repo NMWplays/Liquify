@@ -4550,3 +4550,7 @@ img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-im
 .main-userWidget-box {
   background-color: transparent;
 }
+
+.main-userWidget-box:hover {
+  background-color: transparentM
+}
