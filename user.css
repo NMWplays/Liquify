@@ -3674,10 +3674,6 @@ span.e-10180-overflow-wrap-anywhere.e-10180-button-primary__inner.encore-inverte
   transition: transform 0.3s ease, box-shadow 0.3s ease !important;
 }
 
-.J8g7rZ2MDknxmiYP:hover {
-  box-shadow: var(--glass-shadow);
-}
-
 .ceHJbDWktNYBqkcL {
   border-radius: 20px;
   background-color: transparent;
@@ -4011,6 +4007,7 @@ span.e-10180-text.encore-text-body-medium.encore-internal-color-text-base {
   background-color: transparent;
   --glass-filter: url(#glass-filter--r1-7);
   backdrop-filter: var(--glass-filter) blur(2px);
+  box-shadow: var(--glass-shadow);
 }
 
 .gke5k3GmXyE2J5Pm:active {
@@ -4554,4 +4551,22 @@ img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-im
 .main-userWidget-box:hover,
 .main-userWidget-box:focus-visible {
   background-color: transparent
+}
+
+.VpUQM5JUYIIbAaSL {
+  border-radius: 12px;
+}
+
+.iO61EcS_CwoOggUH {
+  border-radius: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.iO61EcS_CwoOggUH:hover {
+  transform: scale(1.01);
+  box-shadow: var(--glass-shadow);
+}
+
+.rTa1MfHo2BAAcY4m {
+  border-radius: 20px !important;
 }
