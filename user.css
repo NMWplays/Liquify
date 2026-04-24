@@ -4574,3 +4574,20 @@ img.e-10180-legacy-image.e-10180-legacy-image--circle.e-10180-legacy-list-row-im
 .x-entityImage-imageContainer.ZUclVC4rc8sC2ueN.x-entityImage-xsmall {
   border-radius: 15px !important;
 }
+
+.e-10310-box--interactive.e-10310-box--contrasting:hover,
+.e-10310-box--interactive:hover::after {
+  display: none;
+}
+
+span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverted-light-set.e-10310-button-icon-only--small {
+  background-color: transparent;
+  color: var(--encore-icon-fill, currentColor);
+  scale: 1.4;
+  transition: transform 0.3s ease;
+}
+
+span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverted-light-set.e-10310-button-icon-only--small:hover {
+  color: white;
+  transform: scale(1.05) !important;
+}
