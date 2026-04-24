@@ -4636,10 +4636,6 @@ span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverte
   border-radius: 20px;
 }
 
-.main-trackList-rowMarker {
-  width: var(--tracklist-index-column-width, 21px);
-}
-
 .orFyQFu0kG4H73ty {
   transition: transform 0.2s cubic-bezier(0.34, 2, 0.64, 1), box-shadow 0.2s ease !important;
   border-radius: 20px;
