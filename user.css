@@ -4591,3 +4591,17 @@ span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverte
   color: white;
   transform: scale(1.05) !important;
 }
+
+.e-10310-legacy-button-secondary {
+  border: none;
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.3s ease !important;
+}
+
+.e-10310-legacy-button-secondary:hover {
+  transform: scale(1.05) !important;
+}
+
+.e-10310-legacy-chip__inner {
+  box-shadow: var(--glass-shadow);
+}
