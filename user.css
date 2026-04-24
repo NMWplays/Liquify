@@ -4605,3 +4605,33 @@ span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverte
 .e-10310-legacy-chip__inner {
   box-shadow: var(--glass-shadow);
 }
+
+.HqUgEQOPyVcDu2NW {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+}
+
+.HqUgEQOPyVcDu2NW:hover {
+  transform: scale(1.01);
+  box-shadow: var(--glass-shadow);
+}
+
+.e-10310-box--contrasting {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  border-radius: 20px;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+}
+
+.KQDsZX3kwwuAFpE8 {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  border-radius: 20px;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+}
+
+.Iag_FD63ISoBROKL {
+  border-radius: 20px;
+}
