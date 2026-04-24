@@ -4665,3 +4665,15 @@ span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverte
   box-shadow: var(--glass-shadow);
   border-radius: 20px;
 }
+
+.e-10310-box--elevated {
+  background-color: transparent;
+  box-shadow: var(--glass-shadow);
+  border-radius: 17px;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+}
+
+span.e-10310-text.encore-text-body-medium.encore-internal-color-text-base {
+  color: white;
+}
