@@ -4673,3 +4673,7 @@ span.e-10310-overflow-wrap-anywhere.e-10310-button-primary__inner.encore-inverte
 span.e-10310-text.encore-text-body-medium.encore-internal-color-text-base {
   color: white;
 }
+
+.main-trackCreditsModalV2-container {
+  background-color: transparent;
+}
