@@ -3438,6 +3438,8 @@ button#queue-tab:hover {
   border-radius: 20px;
   box-shadow: var(--glass-shadow);
   margin-top: 5px;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
 }
 
 .JthDv0xUCm8rLhu6,
