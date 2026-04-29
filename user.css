@@ -4752,3 +4752,7 @@ span.e-10310-text.encore-text-body-medium.encore-internal-color-text-base {
   transform: scale(1.01);
   box-shadow: var(--glass-shadow);
 }
+
+.marketplace-header {
+  top: 75px !important;
+}
