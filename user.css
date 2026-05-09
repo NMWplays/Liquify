@@ -4881,3 +4881,7 @@ svg.e-10451-icon {
 .e-10451-legacy-button:hover {
   transform: scale(1.05);
 }
+
+.main-userWidget-box:hover, .main-userWidget-box:focus-visible {
+  background-color: transparent;
+}
