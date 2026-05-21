@@ -4911,3 +4911,32 @@ button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wra
 p.e-10451-text.encore-text-body-small.encore-internal-color-text-base {
   color: white;
 }
+
+.d6vJFqCAh_E1aPLz,
+.main-nowPlayingWidget-coverArtContainer,
+.yoA4mzX2Kn0FveXV,
+.dkoC8fbS6PM4cH4f,
+.DdDQ_LY0sYLt8LxK,
+.view-homeShortcutsGrid-shortcut .view-homeShortcutsGrid-imageWrapper {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: inherit;
+  }
+}
+
+.VwcQJ4Zsf0JKD3Ls {
+  background-color: transparent;
+  --glass-filter: url(#glass-filter--r1-7);
+  backdrop-filter: var(--glass-filter) blur(2px);
+  box-shadow: var(--glass-shadow);
+}
+
+.main-playlistEditDetailsModal-closeBtn {
+  box-shadow: var(--glass-shadow);
+}
