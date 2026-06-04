@@ -1,4 +1,30 @@
-(()=>{(()=>{let x="liquify-glass-target-style",p="liquify-glass-filters",b=[{selector:".main-trackList-trackListHeader",options:{borderRadius:20}},{selector:".main-topBar-background",options:{borderRadius:0}},{selector:".znOINyqAy7ivIGbQyrbt",options:{borderRadius:20,blur:5}},{selector:".iGRaSZDa1r0m21aF6oZq",options:{borderRadius:20}},{selector:".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV",options:{borderRadius:20}},{selector:".main-nowPlayingView-trackInfo",options:{borderRadius:20}},{selector:".main-nowPlayingView-section",options:{borderRadius:20}},{selector:".main-entityHeader-container.gmKBgPCnX785KDicbdJu",options:{borderRadius:20}},{selector:".main-home-filterChipsSection",options:{borderRadius:20}},{selector:".view-homeShortcutsGrid-shortcut",options:{borderRadius:20}},{selector:".main-card-card",options:{borderRadius:20}},{selector:".Root__globalNav .DoxYADBBjYMvoYwl7QPg",options:{borderRadius:50}},{selector:".yfJeY2Xi99dPOe6fsIha",options:{borderRadius:20}},{selector:".main-entityHeader-container.main-entityHeader-containerNormal",options:{borderRadius:20}},{selector:".x-settings-section",options:{borderRadius:20}},{selector:".LR7w41pC8ccVc11Q, .ERRo1Br0ZQtJYVhz",options:{borderRadius:20}},{selector:".HOf9H18Ya0DkJ4_K"},{selector:".main-entityHeader-imageContainerWrapper",options:{borderRadius:20}},{selector:".JDUQ8zTo6EUgHoYt",options:{borderRadius:20}},{selector:".main-globalNav-searchInputContainer .main-topBar-searchBar"},{selector:".Root__globalNav .main-globalNav-navLink"}],w={borderWidth:.07,brightness:50,opacity:.93,blur:2,displace:.2,distortionScale:-80,redOffset:0,greenOffset:6,blueOffset:10,xChannel:"R",yChannel:"G",mixBlendMode:"screen"},A=new WeakMap,S=0;function I(){if(document.getElementById(x))return;let e=document.createElement("style");e.id=x,e.textContent=`
+(()=>{
+void (() => {
+    const SELECTOR = "canvas.spicy-dynamic-bg";
+
+    const removeCanvas = (root = document) =>
+        void root.querySelectorAll(SELECTOR).forEach(el => el.remove());
+
+    const observer = new MutationObserver(mutations =>
+        void mutations
+            .flatMap(({ addedNodes }) => [...addedNodes])
+            .filter(node => node instanceof Element)
+            .forEach(node => node.matches(SELECTOR) ? node.remove() : removeCanvas(node))
+    );
+
+    const main = () => (
+        removeCanvas(),
+        void observer.observe(document.body, { childList: true, subtree: true })
+    );
+
+    const init = () =>
+        Spicetify?.Player && Spicetify?.Platform
+            ? main()
+            : void setTimeout(init, 100);
+
+    init();
+})();
+(()=>{let x="liquify-glass-target-style",p="liquify-glass-filters",b=[{selector:".main-trackList-trackListHeader",options:{borderRadius:20}},{selector:".main-topBar-background",options:{borderRadius:0}},{selector:".znOINyqAy7ivIGbQyrbt",options:{borderRadius:20,blur:5}},{selector:".iGRaSZDa1r0m21aF6oZq",options:{borderRadius:20}},{selector:".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV",options:{borderRadius:20}},{selector:".main-nowPlayingView-trackInfo",options:{borderRadius:20}},{selector:".main-nowPlayingView-section",options:{borderRadius:20}},{selector:".main-entityHeader-container.gmKBgPCnX785KDicbdJu",options:{borderRadius:20}},{selector:".main-home-filterChipsSection",options:{borderRadius:20}},{selector:".view-homeShortcutsGrid-shortcut",options:{borderRadius:20}},{selector:".main-card-card",options:{borderRadius:20}},{selector:".Root__globalNav .DoxYADBBjYMvoYwl7QPg",options:{borderRadius:50}},{selector:".yfJeY2Xi99dPOe6fsIha",options:{borderRadius:20}},{selector:".main-entityHeader-container.main-entityHeader-containerNormal",options:{borderRadius:20}},{selector:".x-settings-section",options:{borderRadius:20}},{selector:".LR7w41pC8ccVc11Q, .ERRo1Br0ZQtJYVhz",options:{borderRadius:20}},{selector:".HOf9H18Ya0DkJ4_K"},{selector:".main-entityHeader-imageContainerWrapper",options:{borderRadius:20}},{selector:".JDUQ8zTo6EUgHoYt",options:{borderRadius:20}},{selector:".main-globalNav-searchInputContainer .main-topBar-searchBar"},{selector:".Root__globalNav .main-globalNav-navLink"}],w={borderWidth:.07,brightness:50,opacity:.93,blur:2,displace:.2,distortionScale:-80,redOffset:0,greenOffset:6,blueOffset:10,xChannel:"R",yChannel:"G",mixBlendMode:"screen"},A=new WeakMap,S=0;function I(){if(document.getElementById(x))return;let e=document.createElement("style");e.id=x,e.textContent=`
       .liquify-glass-target {
                 backdrop-filter: var(--glass-filter) blur(var(--glass-blur)) !important;
                 -webkit-backdrop-filter: var(--glass-filter) blur(var(--glass-blur)) !important;
