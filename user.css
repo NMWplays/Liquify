@@ -1,4 +1,4 @@
-/*
+﻿/*
   Liquify V2 – Liquid Glass theme for Spicetify
   Static styles only. The GlassSurface effect (SVG displacement filter) is
   injected at runtime by theme.js, which adds the .liquify-glass classes and
@@ -2225,4 +2225,12 @@ button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wra
 
 .ceHJbDWktNYBqkcL {
   background-color: transparent;
+}
+
+.PromotionDefaultPoster-module_card__1tTql .PromotionDefaultPoster-module_cardLinkWrapper__FHkq1 {
+  border-radius: 20px;
+}
+
+.PromotionDefaultPoster-module_videoLayoutCard__3vfoC:after {
+  border-radius: 20px;
 }
