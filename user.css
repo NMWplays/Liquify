@@ -2220,7 +2220,12 @@ button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wra
 }
 
 .e-10451-box.e-10451-box--tinted.e-10451-box--interactive.e-10451-box--padding-custom.e-10451-box--padding-block-start-custom.e-10451-box--padding-block-end-custom.e-10451-box--min-size.e-10451-legacy-list-row.e-10451-legacy-list-row--has-leading.e-10451-legacy-list-row--custom-gap.eVwj275g1k9wjC73.TguLwQ522LIEgpK_ {
-    border-radius: 20px;
+  border-radius: 20px;
+  transition: transform 0.28s cubic-bezier(0.3, 2.25, 0.32, 1) !important
+}
+
+.e-10451-box.e-10451-box--tinted.e-10451-box--interactive.e-10451-box--padding-custom.e-10451-box--padding-block-start-custom.e-10451-box--padding-block-end-custom.e-10451-box--min-size.e-10451-legacy-list-row.e-10451-legacy-list-row--has-leading.e-10451-legacy-list-row--custom-gap.eVwj275g1k9wjC73.TguLwQ522LIEgpK_:hover {
+  transform: scale(1.03);
 }
 
 .ceHJbDWktNYBqkcL {
