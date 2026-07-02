@@ -278,7 +278,8 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-inverte
 .DHOpYzKPUqobiHLW,
 span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.e-10451-legacy-button--small,
 span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--medium.V2fMzLP0dWw4E5zO,
-.button-module__button___hf2qg_marketplace {
+.button-module__button___hf2qg_marketplace,
+span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negative-set.e-10451-legacy-button--medium.V2fMzLP0dWw4E5zO {
   position: relative;
 
   &::after {
@@ -2252,4 +2253,22 @@ button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wra
   background-color: transparent;
   border-radius: 15px;
   box-shadow: var(--liquify-shadow);
+}
+
+span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negative-set.e-10451-legacy-button--medium.V2fMzLP0dWw4E5zO {
+  border-radius: 15px;
+}
+
+.IrkgqR1tnx44Ecuy button:focus {
+  outline: none;
+}
+
+.main-yourLibraryX-libraryItemContainer .os-scrollbar-vertical:active .os-scrollbar-handle[data-group-by]:after {
+  background-color: transparent;
+  border-radius: 10px;
+  box-shadow: var(--liquify-shadow);
+}
+
+.x-entityImage-imageContainer.REi7CZy2MBQRf0S_.BabdHe8lUUPwDT8y {
+  border-radius: 7px;
 }
