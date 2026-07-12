@@ -1579,7 +1579,6 @@ span.e-10451-text.encore-text-body-medium.encore-internal-color-text-base {
   margin: auto;
   padding: 10px;
   border-radius: 20px;
-  margin-top: 90px;
 }
 
 .kPNLJ4R0r0LWySog {
@@ -2320,19 +2319,3 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negativ
   margin: auto;
   padding: 10px;
 }
-
-/*Cover Art under Playlist Header Scroll Start*/
-
-.main-nowPlayingView-headerWrapper {
-  margin-bottom: -78px !important;
-}
-
-.main-nowPlayingView-headerContainer {
-  z-index: 1;
-}
-
-.main-nowPlayingView-mainWrapper {
-  padding-top: 90px;
-}
-
-/*Cover Art under Playlist Header Scroll End*/
