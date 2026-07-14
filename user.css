@@ -2319,3 +2319,9 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negativ
   margin: auto;
   padding: 10px;
 }
+
+button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wrap-anywhere.e-10451-button-tertiary--icon-only-small.e-10451-button-tertiary--icon-only.encore-internal-color-text-base.main-nowPlayingView-headerButton {
+  background-color: transparent !important;
+  box-shadow: var(--liquify-shadow);
+  border-radius: 12px;
+}
