@@ -1522,9 +1522,9 @@ img.main-image-image.rTa1MfHo2BAAcY4m.main-image-loaded {
 }
 
 .spicetify-exp-features button.switch {
-  background-color: transparent;
-  border-radius: 12px;
-  box-shadow: var(--liquify-shadow);
+  background-color: transparent !important;
+  border-radius: 12px !important;
+  box-shadow: var(--liquify-shadow) !important;
 }
 
 .ZUclVC4rc8sC2ueN {
