@@ -281,7 +281,8 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-
 .button-module__button___hf2qg_marketplace,
 span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negative-set.e-10451-legacy-button--medium.V2fMzLP0dWw4E5zO,
 .view-homeShortcutsGrid-shortcut .view-homeShortcutsGrid-PlayButtonContainer .view-homeShortcutsGrid-playButton,
-span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--medium {
+span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--medium,
+span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--large {
   position: relative;
 
   &::after {
@@ -1694,9 +1695,10 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-inverte
 }
 
 .p67WtOnm9lsRLOu2 {
-  border-radius: 20px;
+  border-radius: 15px;
   background-color: transparent;
   box-shadow: var(--liquify-shadow);
+  border: none !important;
 }
 
 .JvTwds2SLpooyYqa {
@@ -2360,4 +2362,8 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-
   padding: 10px;
   width: 99.5%;
   margin: auto;
+}
+
+.e-10451-box.e-10451-box--tinted.e-10451-box--padding-inline-start-custom.e-10451-box--padding-inline-end-custom.e-10451-box--padding-block-start-custom.e-10451-box--padding-block-end-custom {
+  border-radius: 20px;
 }
