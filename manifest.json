@@ -29,7 +29,8 @@
     "usercss": "https://rawcdn.githack.com/NMWplays/Liquify/V1/user.css",
     "schemes": "https://rawcdn.githack.com/NMWplays/Liquify/V1/color.ini",
     "include": [
-      "https://rawcdn.githack.com/NMWplays/Liquify/V1/theme.js"
+      "https://rawcdn.githack.com/NMWplays/Liquify/V1/theme.js",
+      "https://rawcdn.githack.com/NMWplays/Liquify/V1/liquify-settings.js"
     ],
     "authors": [
       {
