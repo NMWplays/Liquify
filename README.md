@@ -64,3 +64,11 @@ If you like the theme, consider starring the repository on GitHub! ⭐
 - Beautiful dynamic colors (Just enable dynamic button colors in the settings and your good to go)
 - Modern, rounded UI
 - And much more!
+
+## Credits
+
+Created by NMW.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the LICENSE file for details.
