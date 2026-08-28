@@ -292,7 +292,9 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-
 span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-negative-set.e-10451-legacy-button--medium.V2fMzLP0dWw4E5zO,
 .view-homeShortcutsGrid-shortcut .view-homeShortcutsGrid-PlayButtonContainer .view-homeShortcutsGrid-playButton,
 span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--medium,
-span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--large {
+span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-accent-set.e-10451-legacy-button--large,
+span.e-10810-overflow-wrap-anywhere.e-10810-button-primary__inner.encore-bright-accent-set.e-10810-button-icon-only--large,
+.e-10810-button-primary__inner {
   position: relative;
 
   &::after {
@@ -2428,4 +2430,68 @@ span.e-10451-overflow-wrap-anywhere.e-10451-button-primary__inner.encore-bright-
 
 .C_T1Uoz7Fws_AFDl {
   padding-bottom: 9px;
+}
+
+.Root__right-sidebar-peek {
+  background-color: transparent;
+  border-radius: 20px;
+}
+
+.e-10810-legacy-box--interactive:hover::after {
+  background-color: transparent;
+}
+
+.e-10810-legacy-chip__inner {
+  border-radius: 12px;
+  box-shadow: var(--liquify-shadow);
+}
+
+span.e-10810-overflow-wrap-anywhere.e-10810-button-primary__inner.encore-bright-accent-set.e-10810-button-icon-only--large {
+  border-radius: 15px;
+}
+
+.e-10810-legacy-button-secondary {
+  border-radius: 12px;
+  border: none;
+  box-shadow: var(--liquify-shadow);
+  transition: transform 0.28s cubic-bezier(0.3, 2.25, 0.32, 1) !important;
+}
+
+.e-10810-legacy-button-secondary:hover {
+  transform: scale(1.05);
+}
+
+.e-10810-tab-item {
+  border-radius: 17px;
+}
+
+.e-10810-tab-item:hover {
+  box-shadow: var(--liquify-shadow);
+}
+
+.e-10810-legacy-box.e-10810-legacy-box--naked.e-10810-legacy-box--interactive.e-10810-legacy-box--padding-custom.e-10810-legacy-box--padding-block-start-custom.e-10810-legacy-box--padding-block-end-custom.e-10810-legacy-box--hover-custom.e-10810-legacy-box--min-size.e-10810-legacy-list-row.e-10810-legacy-list-row--has-leading.Z557o5iO1x0aSAXt.main-useDropTarget-base.main-useDropTarget-track.main-useDropTarget-local.main-useDropTarget-episode.kCuoeTp_4F8B1vXL.main-useDropTarget-album,
+.e-10810-legacy-box.e-10810-legacy-box--naked.e-10810-legacy-box--interactive.e-10810-legacy-box--padding-custom.e-10810-legacy-box--padding-block-start-custom.e-10810-legacy-box--padding-block-end-custom.e-10810-legacy-box--hover-custom.e-10810-legacy-box--min-size.e-10810-legacy-list-row.e-10810-legacy-list-row--has-leading.Z557o5iO1x0aSAXt.main-useDropTarget-base {
+  transition: transform 0.28s cubic-bezier(0.3, 2.25, 0.32, 1), box-shadow 0.28s ease !important;
+  border-radius: 20px;
+}
+
+.e-10810-legacy-box.e-10810-legacy-box--naked.e-10810-legacy-box--interactive.e-10810-legacy-box--padding-custom.e-10810-legacy-box--padding-block-start-custom.e-10810-legacy-box--padding-block-end-custom.e-10810-legacy-box--hover-custom.e-10810-legacy-box--min-size.e-10810-legacy-list-row.e-10810-legacy-list-row--has-leading.Z557o5iO1x0aSAXt.main-useDropTarget-base.main-useDropTarget-track.main-useDropTarget-local.main-useDropTarget-episode.kCuoeTp_4F8B1vXL.main-useDropTarget-album:hover,
+.e-10810-legacy-box.e-10810-legacy-box--naked.e-10810-legacy-box--interactive.e-10810-legacy-box--padding-custom.e-10810-legacy-box--padding-block-start-custom.e-10810-legacy-box--padding-block-end-custom.e-10810-legacy-box--hover-custom.e-10810-legacy-box--min-size.e-10810-legacy-list-row.e-10810-legacy-list-row--has-leading.Z557o5iO1x0aSAXt.main-useDropTarget-base:hover {
+  transform: scale(1.03);
+  box-shadow: var(--liquify-shadow);
+}
+
+.e-10810-legacy-box--tinted {
+  background-color: transparent;
+  border-radius: 20px;
+  box-shadow: var(--liquify-shadow);
+  transition: transform 0.28s cubic-bezier(0.3, 2.25, 0.32, 1) !important;
+}
+
+.e-10810-legacy-box--tinted:hover {
+  transform: scale(1.03);
+}
+
+.e-10810-button-primary__inner {
+  border-radius: 12px;
 }
