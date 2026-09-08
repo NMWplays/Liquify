@@ -1949,7 +1949,6 @@ button.e-10451-legacy-button.e-10451-legacy-button-tertiary.e-10451-overflow-wra
 .main-contextMenu-menuItemButton[aria-expanded=true] {
   background-color: transparent;
   box-shadow: var(--liquify-shadow);
-  border-radius: 10px;
 }
 
 .gke5k3GmXyE2J5Pm>:first-child {
@@ -2606,4 +2605,14 @@ p.e-10810-text.encore-text-body-small.encore-internal-color-text-base {
 
 .main-entityHeader-container.main-entityHeader-withBackgroundImage.f9g666m0NG0chhI0 {
   background-color: transparent !important;
+}
+
+.gZ0ooTwhYHpF0q8S {
+  background-color: transparent;
+  border-radius: 20px;
+}
+
+.V0GcyC1icnYjOhd1 {
+  border-radius: 13px;
+  box-shadow: var(--liquify-shadow);
 }
