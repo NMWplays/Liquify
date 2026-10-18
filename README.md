@@ -1,4 +1,4 @@
-<h1 align="center"> ✨ Liquify Theme Spicetify ✨ </h1>
+<h1 align="center"> ✨ Fixed Liquify Theme Spicetify for 1.3.6 Spotify Version ✨ </h1>
 
 <p align="center">
   <b>A modern, rounded and liquified theme for spicetify</b><br>
