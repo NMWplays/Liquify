@@ -1,23 +1,274 @@
+/* Liquify compatibility for Spotify's desktop web player.
+ * Restore only the semantic hooks consumed by Liquify. No hashed class names.
+ * Run before the upstream bundle so its layout/settings controllers find them.
+ */
+(() => {
+  if (window.liquifyCompatibility) return;
+  const rootClasses = {
+    'left-sidebar': 'Root__nav-bar',
+    'main-view': 'Root__main-view',
+    'right-sidebar': 'Root__right-sidebar',
+    'now-playing-bar': 'Root__now-playing-bar',
+    'cinema-view': 'Root__cinema-view'
+  };
+  const hooks = [
+    ['#main-view', 'Root__main-view'],
+    ['#Desktop_LeftSidebar_Id', 'Root__nav-bar'],
+    ['#global-nav-bar', 'Root__globalNav'],
+    ['[data-testid="CoverSlotCollapsed__container"]', 'main-coverSlotCollapsed-container'],
+    ['[data-testid="player-controls"]', 'player-controls'],
+    ['[data-testid="CoverSlotCollapsed__container"] [data-testid="cover-art-button"]', 'main-nowPlayingWidget-coverArtContainer'],
+    ['[data-testid="CoverSlotCollapsed__container"] img', 'cover-art-image'],
+    ['[data-testid="now-playing-bar"] > .encore-bright-accent-set', 'main-connectBar-connectBar'],
+    ['[data-testid="user-widget-link"]', 'main-userWidget-box'],
+    ['[data-top-bar-search]', 'main-topBar-searchBar'],
+    ['[data-npv-root]', 'main-nowPlayingView-nowPlayingView'],
+    ['[data-npv-root] > :first-child', 'main-nowPlayingView-headerWrapper'],
+    ['[data-npv-root] section:not(.liquid-lyrics-sidebar-card)', 'main-nowPlayingView-section'],
+    ['[data-testid="cover-art-slot"]', 'main-nowPlayingView-coverArt'],
+    ['[data-testid="cover-art-slot"] img', 'cover-art-image'],
+    ['[data-testid="tracklist-row"]', 'main-trackList-trackListRow'],
+    ['[data-testid="tracklist-header"]', 'main-trackList-trackListHeader'],
+    ['[role="grid"] [data-scroll-size-invariant-class]:has([role="columnheader"])', 'main-trackList-trackListHeader'],
+    ['[role="row"] > [role="presentation"][draggable="true"]', 'main-trackList-trackListRow'],
+    ['[data-encore-id="card"]', 'main-card-card'],
+    ['[data-testid="action-bar"]', 'main-actionBar-ActionBar'],
+    ['[data-testid="entity-header"]', 'main-entityHeader-container'],
+    ['[data-testid="entity-header"] > .contentSpacing', 'main-entityHeader-contentWrapper'],
+    ['[data-testid="entity-header"] > div:empty', 'main-entityHeader-backgroundColor'],
+    ['[data-testid="topbar"] > div:first-child:not(:has(button))', 'main-topBar-background'],
+    ['[data-testid="topbar"] > div:first-child > div:empty', 'main-topBar-overlay'],
+    ['[data-testid="home-page"]', 'liquify-home-page'],
+    ['[data-testid="home-page"]', 'main-home-content'],
+    ['#context-menu > div:has(> [role="menu"])', 'liquify-popup-surface'],
+    ['[role="menu"]:not(#context-menu [role="menu"])', 'liquify-popup-surface'],
+    ['[role="menu"]', 'liquify-menu'],
+    ['[role="dialog"]', 'liquify-dialog']
+  ];
+  let queued = false;
+  let scans = 0;
+  const add = (el, name) => {
+    if (el && !el.classList.contains(name)) el.classList.add(name);
+  };
+  function syncSettings() {
+    const settings = {
+      'compact-player': ['liquify-compact-player', 'off', 'on'],
+      'transparent-player': ['liquify-transparent-player', 'off', 'on'],
+      'floating-player': ['liquify-floating-player', 'off', 'on'],
+      'no-header-box': ['liquify-playlist-header-mode', 'show', 'hide'],
+      'no-action-box': ['liquify-action-bar-box-mode', 'show', 'hide']
+    };
+    for (const [name, [key, fallback, enabled]] of Object.entries(settings)) {
+      document.documentElement.classList.toggle(`liquify-${name}`, (localStorage.getItem(key) || fallback) === enabled);
+    }
+  }
+  function reconcile() {
+    queued = false;
+    scans++;
+    const root = document.querySelector('.Root__top-container');
+    if (root) for (const el of root.children) {
+      if (!(el instanceof HTMLElement) || el.className.startsWith('liquify-')) continue;
+      const area = getComputedStyle(el).gridArea;
+      for (const [key, name] of Object.entries(rootClasses)) {
+        // Exact grid areas only: spanning modal/popover layers must not be themed as panels.
+        if (area === key || area === `${key} / ${key} / ${key} / ${key}`) add(el, name);
+      }
+    }
+    for (const [selector, name] of hooks) document.querySelectorAll(selector).forEach(el => add(el, name));
+    // Expanded Now Playing spans three grid areas instead of declaring cinema-view.
+    // Its media-mode radio group is a stable, locale-independent identifier.
+    document.querySelectorAll('button[role="radio"][value="artwork"]').forEach(button => {
+      let panel = button;
+      while (panel.parentElement && panel.parentElement !== root) panel = panel.parentElement;
+      if (panel.parentElement === root) {
+        add(panel, 'Root__cinema-view');
+        add(panel, 'liquify-expanded-npv');
+        const playingCover = document.querySelector('[data-testid="CoverSlotCollapsed__container"] img')?.src;
+        const imageKey = src => src?.replace(/^.*(?:\/image\/|spotify:image:)(?:ab67616d|ab676161)[0-9a-f]{8}/i, '');
+        for (const image of panel.querySelectorAll('img')) {
+          if (image.closest('section')) continue;
+          const rect = image.getBoundingClientRect();
+          // The URI scheme and rendition prefix differ between these surfaces.
+          if (playingCover && imageKey(image.src) === imageKey(playingCover) && rect.width > 240 && rect.height > 240) {
+            add(image, 'cover-art-image');
+            add(image.parentElement, 'cover-art');
+          }
+        }
+        for (const heading of panel.querySelectorAll('h2')) {
+          let card = heading.parentElement;
+          while (card && card !== panel && !card.hasAttribute('data-overlayscrollbars')) {
+            const background = getComputedStyle(card).backgroundColor;
+            if (background !== 'rgba(0, 0, 0, 0)' && getComputedStyle(card).backgroundImage === 'none') add(card, 'liquify-expanded-card');
+            card = card.parentElement;
+          }
+        }
+      }
+    });
+    document.querySelectorAll('.canvasVideoContainerNPV').forEach(el => add(el.parentElement, 'main-nowPlayingView-canvasVisualEnhancement'));
+    document.querySelectorAll('[data-top-bar-search]').forEach(el => add(el.closest('form'), 'liquify-search'));
+    document.querySelectorAll('[data-testid="shortcut-background"]').forEach(el => add(el.parentElement, 'view-homeShortcutsGrid-shortcut'));
+    document.querySelectorAll('[data-testid="CoverSlotCollapsed__container"] img').forEach(el => add(el.parentElement, 'cover-art'));
+    document.querySelectorAll('[data-testid="cover-art-slot"]').forEach(el => add(el.parentElement, 'main-nowPlayingView-coverArtContainer'));
+    document.querySelectorAll('[data-testid="now-playing-bar"]').forEach(el => {
+      if (el.parentElement?.parentElement === root) add(el.parentElement, 'Root__now-playing-bar');
+    });
+    document.querySelectorAll('[data-npv-root]').forEach(panel => {
+      // Canvas replaces the artwork slot completely. Locate the metadata by its
+      // text links and controls, so both artwork and video layouts receive hooks.
+      let info = null;
+      for (const link of panel.querySelectorAll('a[href^="/album/"], a[href^="/track/"], a[href^="/episode/"]')) {
+        if (!link.textContent.trim() || link.closest('section')) continue;
+        for (let candidate = link.parentElement; candidate && candidate !== panel; candidate = candidate.parentElement) {
+          if (candidate.querySelector('section') || candidate.hasAttribute('data-overlayscrollbars-viewport')) break;
+          if (candidate.querySelector('button') && candidate.querySelector('a[href^="/artist/"], a[href^="/show/"]')) { info = candidate; break; }
+        }
+        if (info) break;
+      }
+      const wrapper = info?.parentElement;
+      if (info) add(info, 'main-nowPlayingView-trackInfo');
+      // Liquid Lyrics still uses these semantic test IDs to mount its sidebar card.
+      // Add hooks to the existing content column without moving React's nodes.
+      if (wrapper && !wrapper.hasAttribute('data-testid')) wrapper.setAttribute('data-testid', 'NPV_Panel_OpenDiv');
+      if (info && !info.hasAttribute('data-testid')) info.setAttribute('data-testid', 'track-visual-enhancement');
+      if (wrapper) for (const group of wrapper.children) {
+        if (group.id === 'liquid-lyrics-sidebar-card') continue;
+        for (const card of group.children) if (card.querySelector('h2')) add(card, 'main-nowPlayingView-section');
+      }
+    });
+    // Native cards now paint solid inner wrappers as well as the outer section.
+    // Keep photos, gradients and interactive controls; clear only opaque fills.
+    document.querySelectorAll('.main-nowPlayingView-section div, .liquify-expanded-card div').forEach(el => {
+      if (el.classList.contains('liquify-card-body') || el.closest('button, [role="button"], .liquid-lyrics-sidebar-card')) return;
+      const style = getComputedStyle(el);
+      if (style.backgroundImage === 'none' && style.backgroundColor.startsWith('rgb(')) add(el, 'liquify-card-body');
+    });
+    document.documentElement.classList.add('liquify-compatible');
+    window.liquifyCompatibility.lyrics?.();
+  }
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(reconcile);
+  }
+  const observer = new MutationObserver(records => {
+    if (records.some(record => record.type === 'childList' ||
+      (record.type === 'attributes' && !record.target.closest('#liquify-filter-host, #liquify-bulk-filter-host')))) schedule();
+  });
+  function start() {
+    reconcile();
+    observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id', 'data-testid', 'src']});
+  }
+  window.liquifyCompatibility = {version: '2026.10.17.3', refresh: reconcile, syncSettings, get scans() { return scans; }};
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
+  else start();
+})();
+
+/* Spicetify 2.45.3 can resolve the collection-only MenuItem instead of Spotify's
+ * adaptive wrapper. Injecting that item into a legacy menu crashes the whole menu.
+ * Select the existing adaptive export by its capabilities, without module IDs.
+ */
+(() => {
+  let attempts = 0;
+  function install() {
+    const components = window.Spicetify?.ReactComponent;
+    const current = components?.MenuItem;
+    if (!current) {
+      if (++attempts < 240) setTimeout(install, 250);
+      return;
+    }
+    if (!String(current).includes('shouldCloseOnSelect')) return;
+    const queue = window.rspackChunk || window.rspackChunkclient_web || window.webpackChunkclient_web;
+    if (!queue) return;
+    try {
+      // The same runtime entry point used by Spicetify's own module resolver.
+      const require = queue.push([[Symbol('liquify-menu-compat')], {}, runtime => runtime]);
+      if (typeof require !== 'function' || !require.m) return;
+      const matches = Object.entries(require.m).filter(([, factory]) =>
+        ['handleMouseEnter', 'menuItemButton', 'onMouseMove', 'showFullTextOnHover']
+          .every(marker => String(factory).includes(marker)));
+      if (matches.length !== 1) return;
+      const candidates = Object.values(require(matches[0][0])).filter(value =>
+        typeof value === 'function' &&
+        ['showFullTextOnHover', 'forceV2LeadingIcon', 'onMouseEnter', 'children']
+          .every(marker => String(value).includes(marker)) &&
+        !String(value).includes('shouldCloseOnSelect'));
+      if (candidates.length !== 1) return;
+      components.MenuItem = candidates[0];
+      window.liquifyCompatibility.menuItem = 'adaptive';
+    } catch (error) {
+      console.warn('[Liquify] Menu compatibility detection skipped:', error);
+    }
+  }
+  install();
+})();
+
+// Spotify exposes lyric state through its CSS color tokens, even when classes change.
+(() => {
+  let sheetCount = -1;
+  let activeSelectors = [];
+  function readSelectors() {
+    if (sheetCount === document.styleSheets.length && activeSelectors.length) return;
+    sheetCount = document.styleSheets.length;
+    activeSelectors = [];
+    const walk = rules => {
+      for (const rule of rules) {
+        if (rule.selectorText && rule.style?.color === 'var(--lyrics-color-active)') {
+          // Exclude :hover and descendant rules: they do not denote the current line.
+          for (const selector of rule.selectorText.split(',')) {
+            if (/^\.[\w.-]+$/.test(selector.trim())) activeSelectors.push(selector.trim());
+          }
+        }
+        if (rule.cssRules) walk(rule.cssRules);
+      }
+    };
+    for (const sheet of document.styleSheets) {
+      if (!sheet.href || sheet.href.includes('user.css')) continue;
+      try { walk(sheet.cssRules); } catch { /* Cross-origin styles are unrelated. */ }
+    }
+  }
+  window.liquifyCompatibility.lyrics = () => {
+    const root = document.querySelector('#main-view main > [style*="--lyrics-color-active"]');
+    if (!root) return;
+    readSelectors();
+    if (!root.classList.contains('liquify-native-lyrics')) root.classList.add('liquify-native-lyrics');
+    for (const line of root.querySelectorAll('div[dir="auto"]')) {
+      const text = line.firstElementChild;
+      if (!text || text.tagName !== 'DIV' || text.children.length || text.hasAttribute('data-encore-id')) continue;
+      if (!line.classList.contains('lyrics-lyricsContent-lyric')) line.classList.add('lyrics-lyricsContent-lyric');
+      if (!text.classList.contains('lyrics-lyricsContent-text')) text.classList.add('lyrics-lyricsContent-text');
+      line.classList.toggle('liquify-lyric-spacer', !text.textContent.trim());
+      line.classList.toggle('lyrics-lyricsContent-active', activeSelectors.some(selector => line.matches(selector)));
+    }
+  };
+})();
+
 "use strict";
 (() => {
   // src/glassSurface.ts
   var SVG_NS = "http://www.w3.org/2000/svg";
-  var XLINK_NS = "http://www.w3.org/1999/xlink";
-  var DEFAULT_LENS = { distortion: -80, chromatic: true };
-  var DEFAULT_FILTER_ID = "glass-filter--r1-7";
-  var FILTER_HOST_ID = "liquify-filter-host";
-  var STYLE_ID = "liquify-glass-style";
-  var PERF_CLASS = "liquify-perf-no-glass";
-  var GLASS_STORAGE_KEY = "liquify-glass-enabled";
-  var PLAIN_BACKDROP = "blur(var(--liquify-backdrop-blur, 2rem)) saturate(1.4)";
-  var BEFORE_LAYER = 'content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;';
-  var CHANNELS = [
-    { name: "red", offset: 0, matrix: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" },
-    { name: "green", offset: 6, matrix: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" },
-    { name: "blue", offset: 10, matrix: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" }
-  ];
+  var DEFAULTS = {
+    borderRadius: 20,
+    borderWidth: 0.07,
+    brightness: 50,
+    opacity: 0.93,
+    blur: 2,
+    glassBlur: "",
+    backdropBlur: "",
+    displace: 0.2,
+    saturation: 1,
+    distortionScale: -80,
+    chromaticAberration: true,
+    redOffset: 0,
+    greenOffset: 6,
+    blueOffset: 10,
+    xChannel: "R",
+    yChannel: "G",
+    mixBlendMode: "screen",
+    applyTo: "element"
+  };
+  var instanceCounter = 0;
+  var filterDefs = null;
   var svgFilterSupport = null;
-  var glassEnabled = readGlassEnabled();
   function supportsSVGFilters() {
     if (svgFilterSupport !== null) return svgFilterSupport;
     const ua = navigator.userAgent;
@@ -32,12 +283,39 @@
     }
     return svgFilterSupport;
   }
+  function ensureFilterDefs() {
+    if (filterDefs && filterDefs.isConnected) return filterDefs;
+    const host = document.createElementNS(SVG_NS, "svg");
+    host.setAttribute("id", "liquify-filter-host");
+    host.setAttribute("width", "0");
+    host.setAttribute("height", "0");
+    host.setAttribute("aria-hidden", "true");
+    filterDefs = document.createElementNS(SVG_NS, "defs");
+    host.appendChild(filterDefs);
+    document.body.appendChild(host);
+    return filterDefs;
+  }
+  var GLASS_STORAGE_KEY = "liquify-glass-enabled";
+  var SIMPLE_STYLE_ID = "liquify-glass-simple-style";
+  var BULK_FILTER_ID = "glass-filter--r1-7";
+  var BULK_FILTER_HOST_ID = "liquify-bulk-filter-host";
+  var BULK_STYLE_ID = "liquify-glass-bulk-style";
+  var PERF_CLASS = "liquify-perf-no-glass";
+  var instances = /* @__PURE__ */ new Set();
+  var glassEnabled = readGlassEnabled();
   function readGlassEnabled() {
     try {
       return localStorage.getItem(GLASS_STORAGE_KEY) !== "off";
     } catch {
       return true;
     }
+  }
+  function ensureSimpleStyle() {
+    if (document.getElementById(SIMPLE_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = SIMPLE_STYLE_ID;
+    style.textContent = ".liquify-glass--simple{background:transparent;backdrop-filter:blur(var(--liquify-backdrop-blur, 2rem)) saturate(1.4);-webkit-backdrop-filter:blur(var(--liquify-backdrop-blur, 2rem)) saturate(1.4);}";
+    document.head.appendChild(style);
   }
   function isGlassEnabled() {
     return glassEnabled;
@@ -48,12 +326,102 @@
       localStorage.setItem(GLASS_STORAGE_KEY, enabled ? "on" : "off");
     } catch {
     }
-    syncPerfClass();
+    for (const instance of instances) instance.refreshMode();
+    document.documentElement.classList.toggle(PERF_CLASS, !enabled);
   }
-  function syncPerfClass() {
-    document.documentElement.classList.toggle(PERF_CLASS, !glassEnabled || !supportsSVGFilters());
+  function bulkDisplacementMap() {
+    const w2 = 400;
+    const h2 = 200;
+    const r = 20;
+    const edge = Math.min(w2, h2) * (0.07 * 0.5);
+    const svg2 = `<svg viewBox="0 0 ${w2} ${h2}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lqbulk-rg" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="#0000"/><stop offset="100%" stop-color="red"/></linearGradient><linearGradient id="lqbulk-bg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#0000"/><stop offset="100%" stop-color="blue"/></linearGradient></defs><rect x="0" y="0" width="${w2}" height="${h2}" fill="black"></rect><rect x="0" y="0" width="${w2}" height="${h2}" rx="${r}" fill="url(#lqbulk-rg)" /><rect x="0" y="0" width="${w2}" height="${h2}" rx="${r}" fill="url(#lqbulk-bg)" style="mix-blend-mode: screen" /><rect x="${edge}" y="${edge}" width="${w2 - edge * 2}" height="${h2 - edge * 2}" rx="${r}" fill="hsl(0 0% 50% / 0.93)" style="filter:blur(2px)" /></svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svg2)}`;
+  }
+  function ensureSharedGlassFilter() {
+    if (!supportsSVGFilters()) return;
+    if (document.getElementById(BULK_FILTER_HOST_ID)) return;
+    const fe = (name, attrs) => {
+      const node = document.createElementNS(SVG_NS, name);
+      for (const [k, v2] of Object.entries(attrs)) node.setAttribute(k, v2);
+      return node;
+    };
+    const host = document.createElementNS(SVG_NS, "svg");
+    host.setAttribute("id", BULK_FILTER_HOST_ID);
+    host.setAttribute("width", "0");
+    host.setAttribute("height", "0");
+    host.setAttribute("aria-hidden", "true");
+    const defs = document.createElementNS(SVG_NS, "defs");
+    const filter = fe("filter", {
+      id: BULK_FILTER_ID,
+      "color-interpolation-filters": "sRGB",
+      x: "0%",
+      y: "0%",
+      width: "100%",
+      height: "100%"
+    });
+    const feImage = fe("feImage", { x: "0", y: "0", width: "100%", height: "100%", preserveAspectRatio: "none", result: "map" });
+    const map = bulkDisplacementMap();
+    feImage.setAttribute("href", map);
+    feImage.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", map);
+    filter.appendChild(feImage);
+    const distortionScale = -80;
+    const channels = [
+      { name: "Red", offset: 0, matrix: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" },
+      { name: "Green", offset: 6, matrix: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" },
+      { name: "Blue", offset: 10, matrix: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" }
+    ];
+    for (const c2 of channels) {
+      filter.appendChild(fe("feDisplacementMap", { in: "SourceGraphic", in2: "map", scale: String(distortionScale + c2.offset), xChannelSelector: "R", yChannelSelector: "G", result: `disp${c2.name}` }));
+      filter.appendChild(fe("feColorMatrix", { in: `disp${c2.name}`, type: "matrix", values: c2.matrix, result: c2.name.toLowerCase() }));
+    }
+    filter.appendChild(fe("feBlend", { in: "red", in2: "green", mode: "screen", result: "rg" }));
+    filter.appendChild(fe("feBlend", { in: "rg", in2: "blue", mode: "screen", result: "output" }));
+    filter.appendChild(fe("feGaussianBlur", { in: "output", stdDeviation: "0.2" }));
+    defs.appendChild(filter);
+    host.appendChild(defs);
+    document.body.appendChild(host);
+  }
+  function applyBulkGlass(targets) {
+    ensureSharedGlassFilter();
+    const defaultSelectors = [];
+    const extraRules = [];
+    const allSelectors = [];
+    const perfOverrides = [];
+    for (const t of targets) {
+      const bright = t.brightness != null ? ` brightness(${t.brightness})` : "";
+      if (t.before) {
+        const b2 = t.blur != null ? `${t.blur}px` : "var(--liquify-glass-blur, 2px)";
+        extraRules.push(
+          `${t.selector}::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;backdrop-filter:var(--glass-filter) blur(${b2})${bright};-webkit-backdrop-filter:var(--glass-filter) blur(${b2})${bright};}`
+        );
+      } else if (t.blur != null || bright) {
+        const b2 = t.blur != null ? `${t.blur}px` : "var(--liquify-glass-blur, 2px)";
+        extraRules.push(
+          `${t.selector}{backdrop-filter:var(--glass-filter) blur(${b2})${bright};-webkit-backdrop-filter:var(--glass-filter) blur(${b2})${bright};}`
+        );
+        allSelectors.push(t.selector);
+        if (bright) perfOverrides.push({ selector: t.selector, bright });
+      } else {
+        defaultSelectors.push(t.selector);
+        allSelectors.push(t.selector);
+      }
+    }
+    const perfBlur = "blur(var(--liquify-backdrop-blur, 2rem)) saturate(1.4)";
+    const css = `:root{--glass-filter:url(#${BULK_FILTER_ID});}` + (defaultSelectors.length ? `${defaultSelectors.join(",")}{backdrop-filter:var(--glass-filter) blur(var(--liquify-glass-blur, 2px));-webkit-backdrop-filter:var(--glass-filter) blur(var(--liquify-glass-blur, 2px));}` : "") + extraRules.join("") + (allSelectors.length ? `html.${PERF_CLASS} :is(${allSelectors.join(",")}){backdrop-filter:${perfBlur};-webkit-backdrop-filter:${perfBlur};}` : "") + // After the blanket perf rule, so these keep their darkening in perf mode.
+    perfOverrides.map(
+      ({ selector, bright }) => `html.${PERF_CLASS} ${selector}{backdrop-filter:${perfBlur}${bright};-webkit-backdrop-filter:${perfBlur}${bright};}`
+    ).join("");
+    let style = document.getElementById(BULK_STYLE_ID);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = BULK_STYLE_ID;
+      document.head.appendChild(style);
+    }
+    style.textContent = css;
+    document.documentElement.classList.toggle(PERF_CLASS, !glassEnabled);
   }
   function installGlassDevtools() {
+    ensureSimpleStyle();
     window.liquifyGlass = {
       enable: () => setGlassEnabled(true),
       disable: () => setGlassEnabled(false),
@@ -63,134 +431,277 @@
       }
     };
   }
-  function applyGlass(targets) {
-    const lenses = /* @__PURE__ */ new Map([[DEFAULT_FILTER_ID, DEFAULT_LENS]]);
-    const groups = /* @__PURE__ */ new Map();
-    for (const target of targets) {
-      const selector = target.selector.includes(",") ? `:is(${target.selector})` : target.selector;
-      const before = target.before === true;
-      if (!isValidSelector(selector) || before && selector.includes("::")) {
-        console.warn(`[Liquify] Skipping invalid glass selector: ${target.selector}`);
-        continue;
-      }
-      const lens = {
-        distortion: target.distortion ?? DEFAULT_LENS.distortion,
-        chromatic: target.chromatic ?? DEFAULT_LENS.chromatic
+  var GlassSurface = class {
+    constructor(el, options = {}) {
+      this.filter = null;
+      this.feImage = null;
+      this.resizeObserver = null;
+      this.attrObserver = null;
+      this.styleEl = null;
+      this.destroyed = false;
+      this.lastSize = { width: 0, height: 0 };
+      this.syncScheduled = false;
+      this.scheduleSync = () => {
+        if (this.syncScheduled || this.destroyed) return;
+        this.syncScheduled = true;
+        requestAnimationFrame(() => {
+          this.syncScheduled = false;
+          this.updateDisplacementMap();
+        });
       };
-      const filterId = lensFilterId(lens);
-      lenses.set(filterId, lens);
-      const bright = target.brightness != null ? ` brightness(${target.brightness})` : "";
-      const blur = target.blur != null ? `${target.blur}px` : "var(--liquify-glass-blur, 2px)";
-      const glass = `url(#${filterId}) blur(${blur})${bright}`;
-      const key = `${before}|${glass}`;
-      let group = groups.get(key);
-      if (!group) {
-        group = { before, glass, plain: PLAIN_BACKDROP + bright, selectors: [] };
-        groups.set(key, group);
+      this.el = el;
+      this.opts = { ...DEFAULTS, ...options };
+      this.filterId = `liquify-filter-${++instanceCounter}`;
+      instances.add(this);
+      if (supportsSVGFilters()) {
+        this.buildFilter();
+        this.applyStyles();
+        this.updateDisplacementMap();
+        this.resizeObserver = new ResizeObserver(this.scheduleSync);
+        this.resizeObserver.observe(el);
+      } else {
+        this.applyStyles();
       }
-      group.selectors.push(before ? `${selector}::before` : selector);
+      this.attrObserver = new MutationObserver(() => this.ensureApplied());
+      this.attrObserver.observe(el, { attributes: true, attributeFilter: ["class", "style"] });
     }
-    let glassCss = "";
-    let perfCss = "";
-    for (const group of groups.values()) {
-      const layer = group.before ? BEFORE_LAYER : "";
-      glassCss += `${group.selectors.join(",")}{${layer}backdrop-filter:${group.glass};}`;
-      perfCss += `${group.selectors.map((s2) => `html.${PERF_CLASS} ${s2}`).join(",")}{backdrop-filter:${group.plain};}`;
+    /**
+     * Re-applies class and marker attribute in case Spotify wiped them.
+     * Called on every mutation batch, so it must stay cheap: no layout reads —
+     * geometry changes are the ResizeObserver's job.
+     */
+    ensureApplied() {
+      if (this.destroyed) return;
+      if (!this.el.classList.contains("liquify-glass") || this.el.getAttribute("data-liquify") !== this.filterId) {
+        this.applyStyles();
+      }
     }
-    if (supportsSVGFilters()) buildFilterHost(lenses);
-    let style = document.getElementById(STYLE_ID);
-    if (!style) {
-      style = document.createElement("style");
-      style.id = STYLE_ID;
-      document.head.appendChild(style);
+    destroy() {
+      if (this.destroyed) return;
+      this.destroyed = true;
+      instances.delete(this);
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = null;
+      this.attrObserver?.disconnect();
+      this.attrObserver = null;
+      this.filter?.remove();
+      this.filter = null;
+      this.feImage = null;
+      this.styleEl?.remove();
+      this.styleEl = null;
+      this.el.classList.remove("liquify-glass", "liquify-glass--svg", "liquify-glass--simple", "liquify-glass--before");
+      this.el.removeAttribute("data-liquify");
     }
-    style.textContent = glassCss + perfCss;
-    syncPerfClass();
-  }
-  var selectorProbe = document.createDocumentFragment();
-  function isValidSelector(selector) {
-    try {
-      selectorProbe.querySelector(selector);
-      return true;
-    } catch {
-      return false;
+    /** Re-applies the current on/off mode (called by the DevTools toggle). */
+    refreshMode() {
+      if (this.destroyed) return;
+      this.applyStyles();
     }
-  }
-  function lensFilterId(lens) {
-    if (lens.distortion === DEFAULT_LENS.distortion && lens.chromatic === DEFAULT_LENS.chromatic) {
-      return DEFAULT_FILTER_ID;
+    applyStyles() {
+      const useSvg = glassEnabled && supportsSVGFilters();
+      this.el.classList.add("liquify-glass");
+      this.el.classList.toggle("liquify-glass--svg", useSvg);
+      this.el.classList.toggle("liquify-glass--simple", !useSvg);
+      this.el.classList.toggle("liquify-glass--before", this.opts.applyTo === "before");
+      this.el.setAttribute("data-liquify", this.filterId);
+      this.ensureInstanceStyle();
     }
-    return `liquify-lens${lens.distortion}${lens.chromatic ? "" : "-mono"}`.replace(/[^\w-]/g, "_");
-  }
-  function svgElement(name, attrs) {
-    const node = document.createElementNS(SVG_NS, name);
-    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
-    return node;
-  }
-  function buildFilterHost(lenses) {
-    document.getElementById(FILTER_HOST_ID)?.remove();
-    const host = svgElement("svg", { id: FILTER_HOST_ID, width: "0", height: "0", "aria-hidden": "true" });
-    const defs = svgElement("defs", {});
-    const map = displacementMap();
-    for (const [id, lens] of lenses) defs.appendChild(buildFilter(id, lens, map));
-    host.appendChild(defs);
-    document.body.appendChild(host);
-  }
-  function buildFilter(id, lens, map) {
-    const filter = svgElement("filter", {
-      id,
-      "color-interpolation-filters": "sRGB",
-      x: "0%",
-      y: "0%",
-      width: "100%",
-      height: "100%"
-    });
-    const image = svgElement("feImage", {
-      x: "0",
-      y: "0",
-      width: "100%",
-      height: "100%",
-      preserveAspectRatio: "none",
-      result: "map",
-      href: map
-    });
-    image.setAttributeNS(XLINK_NS, "xlink:href", map);
-    filter.appendChild(image);
-    const displace = (scale, result) => svgElement("feDisplacementMap", {
-      in: "SourceGraphic",
-      in2: "map",
-      scale: String(scale),
-      xChannelSelector: "R",
-      yChannelSelector: "G",
-      result
-    });
-    if (lens.chromatic) {
-      for (const channel of CHANNELS) {
-        filter.appendChild(displace(lens.distortion + channel.offset, `disp-${channel.name}`));
+    /**
+     * Element-static custom properties in an own stylesheet rule (Spotify rewrites
+     * the inline style attribute, which would wipe them). Holds this element's
+     * displacement filter and any per-element blur overrides — none of which
+     * depend on the on/off mode, so the rule is built once.
+     *
+     * A per-element blur is written as `var(--…-special, <value>)` so theme
+     * settings can override every special element at once via that variable,
+     * while unset elements keep their own value.
+     */
+    ensureInstanceStyle() {
+      if (this.styleEl) return;
+      const decls = [];
+      if (supportsSVGFilters()) {
+        const saturate = this.opts.saturation !== 1 ? ` saturate(${this.opts.saturation})` : "";
+        decls.push(`--liquify-filter:url(#${this.filterId})${saturate}`);
+      }
+      if (this.opts.glassBlur) {
+        decls.push(`--liquify-glass-blur:${this.opts.glassBlur}`);
+      }
+      if (this.opts.backdropBlur) {
+        decls.push(`--liquify-backdrop-blur:var(--liquify-backdrop-blur-special, ${this.opts.backdropBlur})`);
+      }
+      if (decls.length === 0) return;
+      this.styleEl = document.createElement("style");
+      this.styleEl.textContent = `[data-liquify="${this.filterId}"]{${decls.join(";")};}`;
+      document.head.appendChild(this.styleEl);
+    }
+    /** Builds the SVG filter chain (per-channel displacement + screen blend). */
+    buildFilter() {
+      const fe = (name, attrs) => {
+        const node = document.createElementNS(SVG_NS, name);
+        for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+        return node;
+      };
+      const o = this.opts;
+      const filter = fe("filter", {
+        id: this.filterId,
+        "color-interpolation-filters": "sRGB",
+        x: "0%",
+        y: "0%",
+        width: "100%",
+        height: "100%"
+      });
+      this.feImage = fe("feImage", {
+        x: "0",
+        y: "0",
+        width: "100%",
+        height: "100%",
+        preserveAspectRatio: "none",
+        result: "map"
+      });
+      filter.appendChild(this.feImage);
+      if (o.chromaticAberration) {
+        const channels = [
+          {
+            name: "Red",
+            offset: o.redOffset,
+            matrix: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"
+          },
+          {
+            name: "Green",
+            offset: o.greenOffset,
+            matrix: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"
+          },
+          {
+            name: "Blue",
+            offset: o.blueOffset,
+            matrix: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
+          }
+        ];
+        for (const channel of channels) {
+          filter.appendChild(
+            fe("feDisplacementMap", {
+              in: "SourceGraphic",
+              in2: "map",
+              scale: String(o.distortionScale + channel.offset),
+              xChannelSelector: o.xChannel,
+              yChannelSelector: o.yChannel,
+              result: `disp${channel.name}`
+            })
+          );
+          filter.appendChild(
+            fe("feColorMatrix", {
+              in: `disp${channel.name}`,
+              type: "matrix",
+              values: channel.matrix,
+              result: channel.name.toLowerCase()
+            })
+          );
+        }
+        filter.appendChild(fe("feBlend", { in: "red", in2: "green", mode: "screen", result: "rg" }));
+        filter.appendChild(fe("feBlend", { in: "rg", in2: "blue", mode: "screen", result: "output" }));
+      } else {
         filter.appendChild(
-          svgElement("feColorMatrix", {
-            in: `disp-${channel.name}`,
-            type: "matrix",
-            values: channel.matrix,
-            result: channel.name
+          fe("feDisplacementMap", {
+            in: "SourceGraphic",
+            in2: "map",
+            scale: String(o.distortionScale),
+            xChannelSelector: o.xChannel,
+            yChannelSelector: o.yChannel,
+            result: "output"
           })
         );
       }
-      filter.appendChild(svgElement("feBlend", { in: "red", in2: "green", mode: "screen", result: "rg" }));
-      filter.appendChild(svgElement("feBlend", { in: "rg", in2: "blue", mode: "screen", result: "output" }));
-    } else {
-      filter.appendChild(displace(lens.distortion, "output"));
+      filter.appendChild(fe("feGaussianBlur", { in: "output", stdDeviation: String(o.displace) }));
+      ensureFilterDefs().appendChild(filter);
+      this.filter = filter;
     }
-    filter.appendChild(svgElement("feGaussianBlur", { in: "output", stdDeviation: "0.2" }));
-    return filter;
-  }
-  function displacementMap() {
-    const w2 = 400;
-    const h2 = 200;
-    const r = 20;
-    const edge = Math.min(w2, h2) * (0.07 * 0.5);
-    const svg2 = `<svg viewBox="0 0 ${w2} ${h2}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lq-red" x1="100%" y1="0%" x2="0%" y2="0%"><stop offset="0%" stop-color="#0000"/><stop offset="100%" stop-color="red"/></linearGradient><linearGradient id="lq-blue" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#0000"/><stop offset="100%" stop-color="blue"/></linearGradient></defs><rect x="0" y="0" width="${w2}" height="${h2}" fill="black"></rect><rect x="0" y="0" width="${w2}" height="${h2}" rx="${r}" fill="url(#lq-red)" /><rect x="0" y="0" width="${w2}" height="${h2}" rx="${r}" fill="url(#lq-blue)" style="mix-blend-mode: screen" /><rect x="${edge}" y="${edge}" width="${w2 - edge * 2}" height="${h2 - edge * 2}" rx="${r}" fill="hsl(0 0% 50% / 0.93)" style="filter:blur(2px)" /></svg>`;
-    return `data:image/svg+xml,${encodeURIComponent(svg2)}`;
+    /**
+     * The reactbits original displacement map: red ramps transparent→red
+     * right-to-left (x axis), blue ramps transparent→blue top-to-bottom and is
+     * screen-blended on top. The blurred inner rect keeps the centre clear, so
+     * only the edge band refracts.
+     */
+    generateDisplacementMap(actualWidth, actualHeight) {
+      const o = this.opts;
+      const edgeSize = Math.min(actualWidth, actualHeight) * (o.borderWidth * 0.5);
+      const redGradId = `${this.filterId}-red-grad`;
+      const blueGradId = `${this.filterId}-blue-grad`;
+      const svgContent = `
+      <svg viewBox="0 0 ${actualWidth} ${actualHeight}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="${redGradId}" x1="100%" y1="0%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#0000"/>
+            <stop offset="100%" stop-color="red"/>
+          </linearGradient>
+          <linearGradient id="${blueGradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#0000"/>
+            <stop offset="100%" stop-color="blue"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" fill="black"></rect>
+        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${o.borderRadius}" fill="url(#${redGradId})" />
+        <rect x="0" y="0" width="${actualWidth}" height="${actualHeight}" rx="${o.borderRadius}" fill="url(#${blueGradId})" style="mix-blend-mode: ${o.mixBlendMode}" />
+        <rect x="${edgeSize}" y="${edgeSize}" width="${actualWidth - edgeSize * 2}" height="${actualHeight - edgeSize * 2}" rx="${o.borderRadius}" fill="hsl(0 0% ${o.brightness}% / ${o.opacity})" style="filter:blur(${o.blur}px)" />
+      </svg>
+    `;
+      return `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
+    }
+    updateDisplacementMap() {
+      if (this.destroyed || !this.feImage) return;
+      const rect = this.el.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      if (rect.width === this.lastSize.width && rect.height === this.lastSize.height) return;
+      this.lastSize = { width: rect.width, height: rect.height };
+      const dataUrl = this.generateDisplacementMap(rect.width, rect.height);
+      this.feImage.setAttribute("href", dataUrl);
+      this.feImage.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataUrl);
+      this.feImage.setAttribute("width", "100%");
+      this.feImage.setAttribute("height", "100%");
+    }
+  };
+
+  // src/observer.ts
+  function watchGlassTargets(targets) {
+    const attached = /* @__PURE__ */ new Map();
+    let scheduled = false;
+    const scan = () => {
+      scheduled = false;
+      const matched = /* @__PURE__ */ new Set();
+      for (const target of targets) {
+        for (const el of document.querySelectorAll(target.selector)) {
+          if (el.closest(".liquify-popup-clone")) continue;
+          matched.add(el);
+          const existing = attached.get(el);
+          if (existing) {
+            existing.ensureApplied();
+          } else {
+            attached.set(el, new GlassSurface(el, target.options));
+          }
+        }
+      }
+      for (const [el, surface] of attached) {
+        if (!el.isConnected || !matched.has(el)) {
+          surface.destroy();
+          attached.delete(el);
+        }
+      }
+    };
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(scan);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    scan();
+    return () => {
+      observer.disconnect();
+      for (const surface of attached.values()) surface.destroy();
+      attached.clear();
+    };
   }
 
   // node_modules/@kawarp/core/dist/index.js
@@ -939,11 +1450,10 @@
     return style;
   }
   function updateStyle(id, css) {
-    ensureStyleTag(id).textContent = css;
+    const style = ensureStyleTag(id);
+    if (style.textContent !== css) style.textContent = css;
+    window.liquifyCompatibility?.syncSettings();
   }
-  var HEADER_IMAGE = ".main-view-container :is(.CFSFpy4cXrwDj5sahXMg, .MBkMkO6BD5uZ1ZM2pvvU)";
-  var ARTIST_HEADER_IMAGE = '.main-view-container:has([data-testid="artist-page"]) :is(.CFSFpy4cXrwDj5sahXMg, .MBkMkO6BD5uZ1ZM2pvvU)';
-  var CANVAS_CONTAINER_SEL = ".dqJFUEMpr3OgDWpVX6TH";
   function hasMountedCanvasMedia(el) {
     if (!el) return false;
     if (el.querySelector("video")) return true;
@@ -1477,17 +1987,15 @@
     }
   }
   var MAX_SAMPLE_PIXELS = 128 * 128;
-  async function averageColorOf(img) {
+  function averageColorOf(img) {
     try {
-      await img.decode().catch(() => {
-      });
       const scale = Math.min(1, Math.sqrt(MAX_SAMPLE_PIXELS / (img.width * img.height)));
       const width = Math.max(1, Math.round(img.width * scale));
       const height = Math.max(1, Math.round(img.height * scale));
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const ctx = canvas.getContext("2d");
       if (!ctx) return null;
       ctx.drawImage(img, 0, 0, width, height);
       const data = ctx.getImageData(0, 0, width, height).data;
@@ -1521,12 +2029,12 @@
     if (/^https?:/i.test(url)) {
       const cors = await loadImage(url, true);
       if (cors) {
-        const color = await averageColorOf(cors);
+        const color = averageColorOf(cors);
         if (color) return color;
       }
     }
     const plain = await loadImage(url, false);
-    return plain ? await averageColorOf(plain) : null;
+    return plain ? averageColorOf(plain) : null;
   }
   function hexToRgbString(hex) {
     const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
@@ -1840,7 +2348,7 @@
 
   // src/popupBounce.ts
   var STORAGE_KEY = "liquify-popup-bounce";
-  var STYLE_ID2 = "liquify-popup-bounce-style";
+  var STYLE_ID = "liquify-popup-bounce-style";
   var START_SCALE = 0.86;
   var ENTER_DURATION_MS = 240;
   var ENTER_EASING = "cubic-bezier(0.34, 1.7, 0.64, 1)";
@@ -1851,17 +2359,11 @@
   var START_CLASS = "liquify-popup-bounce--start";
   var RUN_CLASS = "liquify-popup-bounce--run";
   var CLONE_CLASS = "liquify-popup-clone";
-  var POPUP_SELECTOR = ".l1Ov7CMEDnAqk63BPZvI, .WwpyuVjaoJUdGwq5SfNQ, .ViRU4WGs4wlDqn0wUPay, .NJh1B8rnlSUlK7sY, .xamNkt5LX9o8aL1q";
-  var SIZE_CONTAINED = "[data-scroll-size-contained]";
-  function isInsideContained(node) {
-    const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    const contained = el?.closest(SIZE_CONTAINED);
-    return !!contained && contained !== el;
-  }
+  var POPUP_SELECTOR = ".liquify-popup-surface, .NJh1B8rnlSUlK7sY, .xamNkt5LX9o8aL1q";
   function ensureStyle() {
-    if (document.getElementById(STYLE_ID2)) return;
+    if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement("style");
-    style.id = STYLE_ID2;
+    style.id = STYLE_ID;
     style.textContent = `.${BASE_CLASS}{transform-origin:top center;will-change:transform;}.${START_CLASS}{transform:scale(${START_SCALE});}.${RUN_CLASS}{transform:scale(1);transition:transform ${ENTER_DURATION_MS}ms ${ENTER_EASING};}`;
     document.head.appendChild(style);
   }
@@ -1873,7 +2375,7 @@
     });
     const enterCleanups = /* @__PURE__ */ new WeakMap();
     const lastRect = /* @__PURE__ */ new WeakMap();
-    const lastBackground = /* @__PURE__ */ new WeakMap();
+    const lastGlass = /* @__PURE__ */ new WeakMap();
     function bounceIn(el, triggerBtn) {
       if (!el || !enabled) return;
       if (triggerBtn?.id === "liquify-settings-btn") return;
@@ -1899,7 +2401,9 @@
       if (!rect || rect.width === 0 || rect.height === 0) return;
       const clone = el.cloneNode(true);
       clone.classList.add(CLONE_CLASS);
-      clone.classList.remove(BASE_CLASS, START_CLASS, RUN_CLASS);
+      const wasBefore = clone.classList.contains("liquify-glass--before");
+      clone.classList.remove(BASE_CLASS, START_CLASS, RUN_CLASS, "liquify-glass", "liquify-glass--svg", "liquify-glass--simple", "liquify-glass--before");
+      clone.removeAttribute("data-liquify");
       const s2 = clone.style;
       s2.position = "fixed";
       s2.left = `${rect.left}px`;
@@ -1912,9 +2416,19 @@
       s2.transformOrigin = "top center";
       s2.transform = "translateY(0) scale(1)";
       s2.opacity = "1";
-      const background = lastBackground.get(el);
-      if (background) s2.backgroundColor = background;
+      const glass = lastGlass.get(el);
+      if (glass?.background) s2.backgroundColor = glass.background;
+      const captured = glass?.backdrop;
+      const backdrop = captured && captured !== "none" && !captured.includes("url(") ? captured : "blur(var(--liquify-backdrop-blur, 2rem))";
+      s2.backdropFilter = backdrop;
+      s2.webkitBackdropFilter = backdrop;
       document.body.appendChild(clone);
+      const radius = parseFloat(getComputedStyle(clone).borderTopLeftRadius) || 20;
+      const surface = new GlassSurface(clone, {
+        borderRadius: radius,
+        glassBlur: "5px",
+        applyTo: wasBefore ? "before" : "element"
+      });
       requestAnimationFrame(() => {
         s2.transition = `transform ${EXIT_DURATION_MS}ms ${EXIT_EASING}, opacity ${EXIT_FADE_MS}ms ease-in`;
         s2.transform = "translateY(8px) scale(0.95)";
@@ -1923,6 +2437,7 @@
       const remove = () => {
         clone.removeEventListener("transitionend", remove);
         window.clearTimeout(timer);
+        surface.destroy();
         clone.remove();
       };
       const timer = window.setTimeout(remove, EXIT_DURATION_MS + 150);
@@ -1943,7 +2458,11 @@
         const now = isVisible(el);
         if (now) {
           lastRect.set(el, el.getBoundingClientRect());
-          lastBackground.set(el, getComputedStyle(el).backgroundColor);
+          const cs = getComputedStyle(el);
+          lastGlass.set(el, {
+            backdrop: cs.backdropFilter || cs.webkitBackdropFilter || "",
+            background: cs.backgroundColor || ""
+          });
           if (!was) bounceIn(el);
         }
         prevVisible.set(el, now);
@@ -1956,21 +2475,9 @@
         if (!p2.classList.contains(CLONE_CLASS)) out.add(p2);
       });
     }
-    let scanQueued = false;
-    function queueScan() {
-      if (scanQueued) return;
-      scanQueued = true;
-      requestAnimationFrame(() => {
-        scanQueued = false;
-        scanPopups();
-      });
-    }
     const mo = new MutationObserver((mutations) => {
       const removedPopups = /* @__PURE__ */ new Set();
-      let relevant = false;
       for (const m2 of mutations) {
-        if (m2.type === "attributes" && m2.attributeName !== "aria-expanded" && isInsideContained(m2.target)) continue;
-        relevant = true;
         if (m2.attributeName === "aria-expanded") {
           const btn = m2.target;
           const now = btn.getAttribute("aria-expanded");
@@ -1984,7 +2491,7 @@
         m2.removedNodes.forEach((node) => collectRemovedPopups(node, removedPopups));
       }
       for (const popup of removedPopups) fadeOutClone(popup);
-      if (relevant) queueScan();
+      requestAnimationFrame(scanPopups);
     });
     mo.observe(document.body, {
       subtree: true,
@@ -2076,7 +2583,7 @@
     actionBarBox: "Action Bar Box:",
     lyricsMode: "Lyrics Translation/Romanization:",
     themedLyrics: "Themed Lyrics:",
-    lyricsFontSize: "Lyrics Font Size (%):",
+    lyricsFontSize: "Lyrics Font Size (px):",
     lyricsMargin: "Lyrics Margin (px):",
     transparentWidth: "Window Controls Width (px):",
     transparentHeight: "Window Controls Height (px):",
@@ -2305,7 +2812,7 @@
       actionBarBox: "Aktionsleisten-Box:",
       lyricsMode: "Songtext-\xDCbersetzung/Romanisierung:",
       themedLyrics: "Thematisierte Songtexte:",
-      lyricsFontSize: "Songtext-Schriftgr\xF6\xDFe (%):",
+      lyricsFontSize: "Songtext-Schriftgr\xF6\xDFe (px):",
       lyricsMargin: "Songtext-Abstand (px):",
       transparentWidth: "Fenstersteuerungs-Breite (px):",
       transparentHeight: "Fenstersteuerungs-H\xF6he (px):",
@@ -2395,7 +2902,7 @@
       actionBarBox: "\u0411\u043B\u043E\u043A \u043F\u0430\u043D\u0435\u043B\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439:",
       lyricsMode: "\u041F\u0435\u0440\u0435\u0432\u043E\u0434/\u0440\u043E\u043C\u0430\u043D\u0438\u0437\u0430\u0446\u0438\u044F \u0442\u0435\u043A\u0441\u0442\u0430:",
       themedLyrics: "\u0422\u0435\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0442\u0435\u043A\u0441\u0442\u044B:",
-      lyricsFontSize: "\u0420\u0430\u0437\u043C\u0435\u0440 \u0448\u0440\u0438\u0444\u0442\u0430 \u0442\u0435\u043A\u0441\u0442\u0430 (%):",
+      lyricsFontSize: "\u0420\u0430\u0437\u043C\u0435\u0440 \u0448\u0440\u0438\u0444\u0442\u0430 \u0442\u0435\u043A\u0441\u0442\u0430 (px):",
       lyricsMargin: "\u041E\u0442\u0441\u0442\u0443\u043F \u0442\u0435\u043A\u0441\u0442\u0430 (px):",
       transparentWidth: "\u0428\u0438\u0440\u0438\u043D\u0430 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432 \u043E\u043A\u043D\u0430 (px):",
       transparentHeight: "\u0412\u044B\u0441\u043E\u0442\u0430 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432 \u043E\u043A\u043D\u0430 (px):",
@@ -2478,7 +2985,7 @@
       actionBarBox: "Caja de barra de acciones:",
       lyricsMode: "Traducci\xF3n/Romanizaci\xF3n de letras:",
       themedLyrics: "Letras tematizadas:",
-      lyricsFontSize: "Tama\xF1o de letra (%):",
+      lyricsFontSize: "Tama\xF1o de letra (px):",
       lyricsMargin: "Margen de letras (px):",
       transparentWidth: "Ancho de controles de ventana (px):",
       transparentHeight: "Alto de controles de ventana (px):",
@@ -2561,7 +3068,7 @@
       actionBarBox: "Caixa da barra de a\xE7\xF5es:",
       lyricsMode: "Tradu\xE7\xE3o/Romaniza\xE7\xE3o das letras:",
       themedLyrics: "Letras com tema:",
-      lyricsFontSize: "Tamanho da fonte das letras (%):",
+      lyricsFontSize: "Tamanho da fonte das letras (px):",
       lyricsMargin: "Margem das letras (px):",
       transparentWidth: "Largura dos controles da janela (px):",
       transparentHeight: "Altura dos controles da janela (px):",
@@ -2644,7 +3151,7 @@
       actionBarBox: "Eylem \xE7ubu\u011Fu kutusu:",
       lyricsMode: "\u015Eark\u0131 s\xF6z\xFC \xE7eviri/romanizasyon:",
       themedLyrics: "Temal\u0131 \u015Fark\u0131 s\xF6zleri:",
-      lyricsFontSize: "\u015Eark\u0131 s\xF6z\xFC yaz\u0131 boyutu (%):",
+      lyricsFontSize: "\u015Eark\u0131 s\xF6z\xFC yaz\u0131 boyutu (px):",
       lyricsMargin: "\u015Eark\u0131 s\xF6z\xFC bo\u015Flu\u011Fu (px):",
       transparentWidth: "Pencere kontrolleri geni\u015Fli\u011Fi (px):",
       transparentHeight: "Pencere kontrolleri y\xFCksekli\u011Fi (px):",
@@ -2728,7 +3235,7 @@
     actionBarBox: "\u090F\u0915\u094D\u0936\u0928 \u092C\u093E\u0930 \u092C\u0949\u0915\u094D\u0938:",
     lyricsMode: "\u0917\u0940\u0924 \u0905\u0928\u0941\u0935\u093E\u0926/\u0930\u094B\u092E\u0928\u093E\u0907\u091C\u093C\u0947\u0936\u0928:",
     themedLyrics: "\u0925\u0940\u092E \u0935\u093E\u0932\u0947 \u0917\u0940\u0924:",
-    lyricsFontSize: "\u0917\u0940\u0924 \u092B\u093C\u0949\u0928\u094D\u091F \u0906\u0915\u093E\u0930 (%):",
+    lyricsFontSize: "\u0917\u0940\u0924 \u092B\u093C\u0949\u0928\u094D\u091F \u0906\u0915\u093E\u0930 (px):",
     lyricsMargin: "\u0917\u0940\u0924 \u092E\u093E\u0930\u094D\u091C\u093F\u0928 (px):",
     transparentWidth: "\u0935\u093F\u0902\u0921\u094B \u0915\u0902\u091F\u094D\u0930\u094B\u0932 \u091A\u094C\u0921\u093C\u093E\u0908 (px):",
     transparentHeight: "\u0935\u093F\u0902\u0921\u094B \u0915\u0902\u091F\u094D\u0930\u094B\u0932 \u090A\u0901\u091A\u093E\u0908 (px):",
@@ -2781,7 +3288,7 @@
     actionBarBox: "\xC5tg\xE4rdsf\xE4ltsbox:",
     lyricsMode: "Text\xF6vers\xE4ttning/Romanisering:",
     themedLyrics: "Tematiserade l\xE5ttexter:",
-    lyricsFontSize: "Textstorlek f\xF6r l\xE5ttexter (%):",
+    lyricsFontSize: "Textstorlek f\xF6r l\xE5ttexter (px):",
     lyricsMargin: "Marginal f\xF6r l\xE5ttexter (px):",
     transparentWidth: "F\xF6nsterkontrollers bredd (px):",
     transparentHeight: "F\xF6nsterkontrollers h\xF6jd (px):",
@@ -2834,7 +3341,7 @@
     actionBarBox: "\u30A2\u30AF\u30B7\u30E7\u30F3\u30D0\u30FC\u30DC\u30C3\u30AF\u30B9:",
     lyricsMode: "\u6B4C\u8A5E\u7FFB\u8A33/\u30ED\u30FC\u30DE\u5B57\u5316:",
     themedLyrics: "\u30C6\u30FC\u30DE\u4ED8\u304D\u6B4C\u8A5E:",
-    lyricsFontSize: "\u6B4C\u8A5E\u30D5\u30A9\u30F3\u30C8\u30B5\u30A4\u30BA (%):",
+    lyricsFontSize: "\u6B4C\u8A5E\u30D5\u30A9\u30F3\u30C8\u30B5\u30A4\u30BA (px):",
     lyricsMargin: "\u6B4C\u8A5E\u30DE\u30FC\u30B8\u30F3 (px):",
     transparentWidth: "\u30A6\u30A3\u30F3\u30C9\u30A6\u64CD\u4F5C\u5E45 (px):",
     transparentHeight: "\u30A6\u30A3\u30F3\u30C9\u30A6\u64CD\u4F5C\u9AD8\u3055 (px):",
@@ -2887,7 +3394,7 @@
     actionBarBox: "\u64CD\u4F5C\u680F\u6846:",
     lyricsMode: "\u6B4C\u8BCD\u7FFB\u8BD1/\u7F57\u9A6C\u5316:",
     themedLyrics: "\u4E3B\u9898\u6B4C\u8BCD:",
-    lyricsFontSize: "\u6B4C\u8BCD\u5B57\u53F7 (%):",
+    lyricsFontSize: "\u6B4C\u8BCD\u5B57\u53F7 (px):",
     lyricsMargin: "\u6B4C\u8BCD\u8FB9\u8DDD (px):",
     transparentWidth: "\u7A97\u53E3\u63A7\u4EF6\u5BBD\u5EA6 (px):",
     transparentHeight: "\u7A97\u53E3\u63A7\u4EF6\u9AD8\u5EA6 (px):",
@@ -2940,7 +3447,7 @@
     actionBarBox: "\uC561\uC158 \uBC14 \uBC15\uC2A4:",
     lyricsMode: "\uAC00\uC0AC \uBC88\uC5ED/\uB85C\uB9C8\uC790 \uD45C\uAE30:",
     themedLyrics: "\uD14C\uB9C8 \uAC00\uC0AC:",
-    lyricsFontSize: "\uAC00\uC0AC \uAE00\uAF34 \uD06C\uAE30 (%):",
+    lyricsFontSize: "\uAC00\uC0AC \uAE00\uAF34 \uD06C\uAE30 (px):",
     lyricsMargin: "\uAC00\uC0AC \uC5EC\uBC31 (px):",
     transparentWidth: "\uCC3D \uCEE8\uD2B8\uB864 \uB108\uBE44 (px):",
     transparentHeight: "\uCC3D \uCEE8\uD2B8\uB864 \uB192\uC774 (px):",
@@ -3899,7 +4406,7 @@
   function applyAccent2(color) {
     document.documentElement.style.setProperty("--spice-button", color);
     document.documentElement.style.setProperty("--spice-button-active", color);
-    document.documentElement.style.setProperty("--background-highlight", color);
+    document.documentElement.style.removeProperty("--background-highlight");
     document.documentElement.style.setProperty("--liquify-accent", color);
     const css = `
     .AZ6uIUy8_YPogVERteBi:hover .r9ZhqDYZeNTrb4R4Te8W { fill: ${color} !important; }
@@ -3926,8 +4433,8 @@
     localStorage.setItem("liquify-custom-color", color);
   }
   function applyDynamicAccent() {
-    const dynamicColor = document.documentElement.style.getPropertyValue("--accent-color").trim();
-    if (!dynamicColor || dynamicColor === lastDynamicColor) return;
+    const dynamicColor = getComputedStyle(document.documentElement).getPropertyValue("--accent-color").trim();
+    if (!dynamicColor || (dynamicColor === lastDynamicColor && document.documentElement.style.getPropertyValue("--spice-button") === dynamicColor)) return;
     lastDynamicColor = dynamicColor;
     applyAccent2(dynamicColor);
     document.documentElement.style.setProperty("--liquify-dynamic-color", dynamicColor);
@@ -3972,33 +4479,23 @@
     localStorage.setItem("liquify-glow-mode", "default");
   }
 
-  // src/settings/features/artistScrollEffect.ts
-  var KEYFRAMES = "liquify-artist-scroll";
   function applyArtistScrollEffect(blur, brightness) {
-    localStorage.setItem("liquify-artist-scroll-blur", String(blur));
-    localStorage.setItem("liquify-artist-scroll-brightness", String(brightness));
-    const style = ensureStyleTag("liquify-artist-scroll-effect");
-    const brightnessVal = (brightness / 100).toFixed(2);
-    style.textContent = `
-${HEADER_IMAGE} {
-  animation-name: ${KEYFRAMES};
-}
-@keyframes ${KEYFRAMES} {
-  0% {
-    transform: none;
-    filter: blur(0px) brightness(${brightnessVal});
-  }
-  40%, 100% {
-    transform: scale(1.5);
-    filter: blur(${blur}px) brightness(${brightnessVal});
-  }
-}`;
+    localStorage.setItem('liquify-artist-scroll-blur', String(blur));
+    localStorage.setItem('liquify-artist-scroll-brightness', String(brightness));
+    // Keep Spotify's scroll-controlled duration/delay and replace only the name.
+    updateStyle('liquify-artist-scroll-effect', `
+      .liquify-artist-page #main-view .before-scroll-node [data-testid="background-image"] {
+        animation-name: liquify-artist-scroll !important;
+      }
+      @keyframes liquify-artist-scroll {
+        0% { transform: scale(1); filter: blur(0px) brightness(${brightness / 100}); }
+        80%, 100% { transform: scale(1.15); filter: blur(${blur}px) brightness(${brightness / 100}); }
+      }`);
   }
   function ensureArtistScrollEffectApplied() {
-    const blur = readNum("liquify-artist-scroll-blur", 15);
-    const brightness = readNum("liquify-artist-scroll-brightness", 70);
-    applyArtistScrollEffect(blur, brightness);
+    applyArtistScrollEffect(readNum('liquify-artist-scroll-blur', 15), readNum('liquify-artist-scroll-brightness', 70));
   }
+
 
   // src/settings/features/background.ts
   async function fileToBase64(file) {
@@ -4066,46 +4563,52 @@ ${HEADER_IMAGE} {
     }
     window.dispatchEvent(new Event("liquifyBackgroundChange"));
   }
-  var ARTIST_BG_STYLE_ID = "liquify-artist-bg-style";
+  // Artist artwork lives outside artist-page, in Spotify's before-scroll-node.
+  // Override only the image; React retains ownership of its original URL.
   function installArtistBackgroundController() {
-    const STORAGE_KEY_MODE = "liquify-artist-bg-mode";
-    const STORAGE_KEY_CUSTOM = "liquify-artist-bg-image";
-    const STORAGE_KEY_URL = "liquify-artist-bg-url";
-    const getSavedMode = () => localStorage.getItem(STORAGE_KEY_MODE) || "theme";
-    const setSavedMode = (mode) => localStorage.setItem(STORAGE_KEY_MODE, mode);
+    const selector = '#main-view .before-scroll-node [data-testid="background-image"]';
+    const modeKey = 'liquify-artist-bg-mode';
+    let scheduled = false;
     function applyMode(mode) {
-      const image = mode === "custom" ? localStorage.getItem(STORAGE_KEY_CUSTOM) : mode === "url" ? localStorage.getItem(STORAGE_KEY_URL) : null;
-      let css = "";
-      if (mode === "none") css = `${ARTIST_HEADER_IMAGE} { opacity: 0 !important; }`;
-      else if (image) {
-        css = `${ARTIST_HEADER_IMAGE} { background-image: url(${JSON.stringify(image)}) !important; background-position: center center !important; }`;
-      }
-      updateStyle(ARTIST_BG_STYLE_ID, css);
+      const artist = !!document.querySelector('[data-testid="artist-page"]');
+      document.documentElement.classList.toggle('liquify-artist-page', artist);
+      const url = mode === 'custom' ? localStorage.getItem('liquify-artist-bg-image') :
+        mode === 'url' ? localStorage.getItem('liquify-artist-bg-url') : '';
+      const image = url ? `url(${JSON.stringify(url)})` : '';
+      const css = !artist ? '' : mode === 'none' ? `${selector} { visibility: hidden !important; }` :
+        image ? `${selector} { background-image: ${image} !important; background-size: cover; background-position: center; }` : '';
+      updateStyle('liquify-artist-background-compat', css);
     }
-    function applySavedModeIfArtist() {
-      applyMode(getSavedMode());
+    function applySavedModeIfArtist() { applyMode(localStorage.getItem(modeKey) || 'theme'); }
+    function schedule() {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => { scheduled = false; applySavedModeIfArtist(); });
     }
-    window.addEventListener("liquifyBackgroundChange", applySavedModeIfArtist);
+    const observer = new MutationObserver(records => {
+      // Ignore our own style and text updates. A route/image mount is sufficient.
+      if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n => n.nodeType === 1 &&
+        (n.matches?.('[data-testid="artist-page"], .before-scroll-node, [data-testid="background-image"]') ||
+         n.querySelector?.('[data-testid="artist-page"], [data-testid="background-image"]'))))) schedule();
+    });
+    observer.observe(document.body, {childList: true, subtree: true});
+    window.addEventListener('liquifyBackgroundChange', schedule);
+    Spicetify.Platform.History.listen(schedule);
     applySavedModeIfArtist();
-    return {
-      applyMode,
-      applySavedModeIfArtist,
-      setMode: (mode) => {
-        setSavedMode(mode);
-        applySavedModeIfArtist();
-      }
-    };
+    return {applyMode, applySavedModeIfArtist, setMode(mode) {
+      localStorage.setItem(modeKey, mode); applySavedModeIfArtist();
+    }};
   }
+
 
   // src/settings/features/playbarCoverRadius.ts
   var PLAYBAR_COVER_BORDER_RADIUS_KEY = "liquify-playbar-cover-border-radius";
   var PLAYBAR_COVER_DEFAULTS = { borderRadius: 12 };
   var LEGACY_PLAYBAR_COVER_DEFAULT_RADIUS = 8;
-  var PLAYBAR_COVER_SLOT = '[data-testid="now-playing-widget"] [data-testid="CoverSlotCollapsed__container"]';
   function applyPlaybarCoverBorderRadius(px) {
     const css = `
-    ${PLAYBAR_COVER_SLOT},
-    ${PLAYBAR_COVER_SLOT} .ar_EqL2QE56qHRlOjjRL { border-radius: ${px}px !important; }
+    .main-nowPlayingWidget-coverArtContainer { border-radius: ${px}px !important; }
+    .main-nowPlayingWidget-coverArtContainer img { border-radius: ${px}px !important; }
   `;
     updateStyle("liquify-playbar-cover-radius", css);
     localStorage.setItem(PLAYBAR_COVER_BORDER_RADIUS_KEY, String(px));
@@ -4154,21 +4657,18 @@ ${HEADER_IMAGE} {
     const mb = readNum(CCA_MARGIN_BOTTOM_KEY, CCA_DEFAULTS.marginBottom);
     const ml = readNum(CCA_MARGIN_LEFT_KEY, CCA_DEFAULTS.marginLeft);
     const css = `
-    ${PLAYBAR_COVER_SLOT} {
+    :root .Root__top-container .main-nowPlayingWidget-nowPlaying .main-coverSlotCollapsed-container .cover-art,
+    :root .Root__top-container .main-nowPlayingWidget-nowPlaying .main-coverSlotCollapsed-container .VideoPlayer__container video {
       width: ${w2}px !important;
       height: ${h2}px !important;
-      flex-shrink: 0;
+      overflow: hidden;
+      object-fit: cover;
+      max-height: none;
+      max-width: none;
+    }
+    .main-nowPlayingWidget-coverArtContainer {
       margin-bottom: ${mb}px !important;
       margin-left: ${ml}px !important;
-    }
-    ${PLAYBAR_COVER_SLOT} :is(div, button, img, video) {
-      width: 100% !important;
-      height: 100% !important;
-      max-width: none;
-      max-height: none;
-    }
-    ${PLAYBAR_COVER_SLOT} :is(img, video) {
-      object-fit: cover;
     }
   `;
     updateStyle("liquify-comfy-cover-art", css);
@@ -4178,7 +4678,7 @@ ${HEADER_IMAGE} {
   function installCoverSwipe() {
     (() => {
       const anyWin = window;
-      const STYLE_ID18 = "cs-cover-swipe";
+      const STYLE_ID15 = "cs-cover-swipe";
       const TRACK_ID = "cs-track";
       const TRAVEL = 2;
       const DURATION = Math.round(300 * TRAVEL * 0.9);
@@ -4192,24 +4692,17 @@ ${HEADER_IMAGE} {
       const SAME_SONG_THRESHOLD = 3e3;
       const POST_CANVAS_GRACE = 600;
       const CANVAS_GAP_GRACE = 150;
-      const CANVAS_SEL = CANVAS_CONTAINER_SEL;
+      const CANVAS_SEL = ".main-nowPlayingView-canvasVisualEnhancement";
       const VIDEO_SEL = "#VideoPlayerNpv_ReactPortal";
-      const CINEMA_SEL = ".Gs2EwEu259e_Q_vcVyCx";
-      const CONTAINER_SEL = ".BGdcsJhkf4JOCIGu5one";
-      const SPOTIFY_COVER_SEL = ".p0UCDR70bGAS2xsqZuTq";
-      const SIDEBAR_SEL = ".D0qWErHdvHknfXqr6zOl";
-      document.getElementById(STYLE_ID18)?.remove();
+      const CINEMA_SEL = ".Root__cinema-view";
+      const CONTAINER_SEL = ".main-nowPlayingView-coverArtContainer";
+      document.getElementById(STYLE_ID15)?.remove();
       anyWin.__coverSwipeOff?.();
       const style = document.createElement("style");
-      style.id = STYLE_ID18;
+      style.id = STYLE_ID15;
       style.textContent = `
-        ${CONTAINER_SEL}:has(#${TRACK_ID}) > ${SPOTIFY_COVER_SEL} {
+        ${CONTAINER_SEL}:has(#${TRACK_ID}) .main-nowPlayingView-coverArt {
             visibility: hidden !important;
-        }
-        /* user.css rims the slot itself; with the swipe on each cover carries its
-           own rim (.cs-slot::after), and the slot's would stay put while they move. */
-        ${CONTAINER_SEL}:has(#${TRACK_ID})::after {
-            display: none !important;
         }
         #${TRACK_ID} {
             position: absolute;
@@ -4277,13 +4770,6 @@ ${HEADER_IMAGE} {
         .cs-unclip {
             overflow-x: clip !important;
             overflow-clip-margin: 100vw !important;
-        }
-        /* A box that clips both ways without scrolling (the cover slot itself is
-           overflow:hidden) needs clip on both axes: next to a hidden y, clip on x
-           computes back to hidden and the margin is ignored, which stopped the
-           covers right at the slot's edges. */
-        .cs-unclip.cs-unclip-both {
-            overflow: clip !important;
         }
         #${TRACK_ID} .cs-slot {
             position: absolute;
@@ -4419,7 +4905,7 @@ ${HEADER_IMAGE} {
         const url = trackToImageUrl(getCurrentItem());
         if (url) return url;
         const cont = document.querySelector(CONTAINER_SEL);
-        return cont?.querySelector(`${SPOTIFY_COVER_SEL} img`)?.src || cont?.querySelector("img")?.src || "";
+        return cont?.querySelector(".main-nowPlayingView-coverArt img")?.src || cont?.querySelector("img")?.src || "";
       };
       const getCurrentUri = () => trackToUri(getCurrentItem());
       const getNextItem = () => {
@@ -4521,21 +5007,18 @@ ${HEADER_IMAGE} {
       };
       const inCanvasGrace = () => Date.now() - lastCanvasOffAt < POST_CANVAS_GRACE;
       const UNCLIP_CLASS = "cs-unclip";
-      const UNCLIP_BOTH_CLASS = "cs-unclip-both";
       let unclipped = [];
       const unclipAncestors = (from) => {
         clearUnclipped();
-        const stop = document.querySelector(SIDEBAR_SEL);
+        const stop = document.querySelector(".Root__right-sidebar");
         for (let el = from; el && el !== stop; el = el.parentElement) {
-          const cs = getComputedStyle(el);
-          if (cs.overflowX === "visible") continue;
+          if (getComputedStyle(el).overflowX === "visible") continue;
           el.classList.add(UNCLIP_CLASS);
-          if (!/auto|scroll/.test(cs.overflowY)) el.classList.add(UNCLIP_BOTH_CLASS);
           unclipped.push(el);
         }
       };
       const clearUnclipped = () => {
-        for (const el of unclipped) el.classList.remove(UNCLIP_CLASS, UNCLIP_BOTH_CLASS);
+        for (const el of unclipped) el.classList.remove(UNCLIP_CLASS);
         unclipped = [];
       };
       const mount = (container) => {
@@ -4916,16 +5399,14 @@ ${HEADER_IMAGE} {
           if (origNext) Spicetify.Player.next = origNext;
           if (origBack) Spicetify.Player.back = origBack;
         }
-        document.getElementById(STYLE_ID18)?.remove();
+        document.getElementById(STYLE_ID15)?.remove();
         delete anyWin.__coverSwipeOff;
       };
     })();
   }
 
   // src/settings/features/vinylCoverArt.ts
-  var STYLE_ID3 = "liquify-vinyl-style";
-  var NPV_COVER_SLOT = ".BGdcsJhkf4JOCIGu5one";
-  var CINEMA_COVER = ".KgyieS7hpRUjZvjbSy43";
+  var STYLE_ID2 = "liquify-vinyl-style";
   var PLAY_STATE_KEY = "liquifyVinylPlayState";
   var PLAYING_CLASS = "liquify-playing";
   var VINYL_SPEED_KEY = "liquify-vinyl-speed";
@@ -4990,8 +5471,7 @@ ${discFurniture(disc)}`;
   function buildCss() {
     const parts = [];
     if (isVinylOn("npv")) {
-      const slot = `${NPV_COVER_SLOT}:not(:has(#cs-track))`;
-      parts.push(vinylCss(slot, `${slot} img`));
+      parts.push(vinylCss(".main-nowPlayingView-coverArt", ".main-nowPlayingView-coverArt img"));
       parts.push(`
 #cs-track .cs-slot { border-radius: 50% !important; }
 #cs-track .cs-face {
@@ -5003,21 +5483,21 @@ html.${PLAYING_CLASS} #cs-track .cs-face { animation-play-state: running; }
 ${discFurniture("#cs-track .cs-face")}`);
     }
     if (isVinylOn("playbar")) {
-      const slot = `.Root__top-container ${PLAYBAR_COVER_SLOT}`;
       parts.push(vinylCss(
-        `${slot} .ar_EqL2QE56qHRlOjjRL`,
-        `${slot} .ar_EqL2QE56qHRlOjjRL img`
+        ".main-coverSlotCollapsed-container .cover-art",
+        ".main-coverSlotCollapsed-container .cover-art .cover-art-image"
       ));
       parts.push(`
-${slot} {
+.main-coverSlotCollapsed-container .main-nowPlayingWidget-coverArtContainer,
+.main-coverSlotCollapsed-container .main-nowPlayingWidget-coverArt {
   border-radius: 50% !important;
   background: transparent !important;
 }`);
     }
     if (isVinylOn("cinema")) {
       parts.push(vinylCss(
-        `${CINEMA_COVER} .uM9we09EwoxEy6yzw8aD`,
-        `${CINEMA_COVER} .uM9we09EwoxEy6yzw8aD img`
+        ".Root__cinema-view .cover-art",
+        ".Root__cinema-view .cover-art .cover-art-image"
       ));
     }
     if (parts.length === 0) return "";
@@ -5028,7 +5508,7 @@ ${parts.join("\n")}
 @keyframes liquify-vinyl-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-  html.${PLAYING_CLASS} :is([class*="cover-art"], ${NPV_COVER_SLOT} img, ${CINEMA_COVER} img, .ar_EqL2QE56qHRlOjjRL img, .cs-face) { animation: none !important; }
+  html.${PLAYING_CLASS} [class*="cover-art"], html.${PLAYING_CLASS} .cs-face { animation: none !important; }
 }`;
   }
   function installPlayState() {
@@ -5044,7 +5524,7 @@ ${parts.join("\n")}
     setInterval(sync, 1e3);
   }
   function applyCss() {
-    updateStyle(STYLE_ID3, buildCss());
+    updateStyle(STYLE_ID2, buildCss());
     refreshMiniPlayer();
   }
   function setVinyl(surface, mode) {
@@ -5068,7 +5548,7 @@ ${parts.join("\n")}
   }
 
   // src/settings/features/miniPlayer.ts
-  var STYLE_ID4 = "liquify-mini-player-style";
+  var STYLE_ID3 = "liquify-mini-player-style";
   var PLAYING_CLASS2 = "liquify-playing";
   var INSTALLED_KEY = "liquifyMiniPlayerInstalled";
   var RADIUS = 20;
@@ -5128,10 +5608,10 @@ ${DISC}::after {
   function applyToWindow(win) {
     const doc = win.document;
     if (!doc?.head) return;
-    let style = doc.getElementById(STYLE_ID4);
+    let style = doc.getElementById(STYLE_ID3);
     if (!style) {
       style = doc.createElement("style");
-      style.id = STYLE_ID4;
+      style.id = STYLE_ID3;
       doc.head.appendChild(style);
     }
     const css = miniPlayerCss();
@@ -5174,9 +5654,6 @@ ${DISC}::after {
   // src/settings/features/lyricsTranslator.ts
   function installLyricsTranslator() {
     const STORAGE_KEY2 = "liquify-lyrics-mode";
-    const LYRIC_LINE = ".mzAT53py1LJkDA4izCjN";
-    const LYRIC_TEXT = ".C8vlCbXzAR7qEMsoQG1r";
-    const LYRIC_ACTIVE_CLASS = "N6tht_GLY5suoRAtaggy";
     const CACHE = /* @__PURE__ */ new Map();
     const RESOLVED = /* @__PURE__ */ new Map();
     const LANG = (Spicetify?.Platform?.Session?.locale || navigator.language || "en").split("-")[0];
@@ -5289,10 +5766,10 @@ ${DISC}::after {
       }
       processing = true;
       const { showTranslation, showRoman } = getFlags(mode);
-      const parents = document.querySelectorAll(LYRIC_LINE);
+      const parents = document.querySelectorAll(".lyrics-lyricsContent-lyric");
       const jobs = [];
       for (const parent of Array.from(parents)) {
-        const textEl = parent.querySelector(LYRIC_TEXT);
+        const textEl = parent.querySelector(".lyrics-lyricsContent-text");
         if (!textEl) continue;
         const text = (textEl.textContent || "").trim();
         if (!text) continue;
@@ -5322,7 +5799,7 @@ ${DISC}::after {
           container.appendChild(rspan);
           parent.appendChild(container);
         }
-        const active = parent.classList.contains(LYRIC_ACTIVE_CLASS);
+        const active = parent.classList.contains("lyrics-lyricsContent-active");
         const color = active ? "var(--lyrics-color-active)" : "var(--lyrics-color-inactive)";
         const tEl = container.querySelector(".sp-lyric-translation-text");
         const rEl = container.querySelector(".sp-lyric-translation-roman");
@@ -5419,43 +5896,54 @@ ${DISC}::after {
   var PLAYER_WIDTH_MODE_KEY = "liquify-player-width";
   var PLAYER_CUSTOM_W_KEY = "liquify-player-custom-width";
   var PLAYER_CUSTOM_H_KEY = "liquify-player-custom-height";
-  var PLAYER_RADIUS_KEY = "liquify-player-radius";
   var DEFAULT_CUSTOM_WIDTH = 80;
   var DEFAULT_CUSTOM_HEIGHT = 88;
-  var DEFAULT_RADIUS = 30;
-  var PLAYER_BAR = ".z0qdvwslOFVOAihShLIq";
-  var STYLE_ID5 = "liquify-player-style";
   function getPlayerElement() {
-    return document.querySelector(PLAYER_BAR);
+    return document.querySelector(".Root__now-playing-bar");
   }
-  function applyPlayerCss() {
-    const mode = localStorage.getItem(PLAYER_WIDTH_MODE_KEY) || "theme";
-    const radius = parseInt(localStorage.getItem(PLAYER_RADIUS_KEY) || String(DEFAULT_RADIUS), 10);
-    let size;
-    if (mode === "default") {
-      size = "width: calc(100% + var(--panel-gap) * 2); margin: calc(var(--panel-gap) * -1);";
+  function applyPlayerWidth(mode) {
+    const player = getPlayerElement();
+    if (!player) return;
+    if (mode === "theme") {
+      player.style.width = "65%";
+      player.style.margin = "0 auto 5px";
+      player.style.height = "";
+    } else if (mode === "default") {
+      player.style.width = "unset";
+      player.style.margin = "calc(var(--panel-gap) * -1)";
+      player.style.height = "";
     } else if (mode === "custom") {
       const w2 = parseFloat(localStorage.getItem(PLAYER_CUSTOM_W_KEY) || String(DEFAULT_CUSTOM_WIDTH));
       const h2 = parseInt(localStorage.getItem(PLAYER_CUSTOM_H_KEY) || String(DEFAULT_CUSTOM_HEIGHT), 10);
-      size = `width: ${Number.isFinite(w2) ? w2 : DEFAULT_CUSTOM_WIDTH}%; height: ${Number.isFinite(h2) ? h2 : DEFAULT_CUSTOM_HEIGHT}px; margin: 0 auto 5px;`;
-    } else {
-      size = "width: 65%; margin: 0 auto 5px;";
+      player.style.width = Number.isFinite(w2) ? w2 + "%" : DEFAULT_CUSTOM_WIDTH + "%";
+      player.style.height = Number.isFinite(h2) ? h2 + "px" : DEFAULT_CUSTOM_HEIGHT + "px";
+      player.style.margin = "0 auto 5px";
     }
-    updateStyle(
-      STYLE_ID5,
-      `.Root__top-container ${PLAYER_BAR} { ${size} border-radius: ${Number.isFinite(radius) ? radius : DEFAULT_RADIUS}px; }`
-    );
-  }
-  function applyPlayerWidth(mode) {
-    localStorage.setItem(PLAYER_WIDTH_MODE_KEY, mode);
-    applyPlayerCss();
   }
   function applyPlayerRadius(px) {
-    localStorage.setItem(PLAYER_RADIUS_KEY, String(px));
-    applyPlayerCss();
+    const player = getPlayerElement();
+    if (!player) return;
+    player.style.borderRadius = px + "px";
+    localStorage.setItem("liquify-player-radius", String(px));
   }
   function ensurePlayerApplied() {
-    applyPlayerCss();
+    const mode = localStorage.getItem(PLAYER_WIDTH_MODE_KEY) || "theme";
+    const radius = parseInt(localStorage.getItem("liquify-player-radius") || "30", 10);
+    const player = getPlayerElement();
+    if (player) {
+      applyPlayerWidth(mode);
+      applyPlayerRadius(radius);
+      return;
+    }
+    const obs = new MutationObserver(() => {
+      const found = getPlayerElement();
+      if (found) {
+        applyPlayerWidth(mode);
+        applyPlayerRadius(radius);
+        obs.disconnect();
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
   }
 
   // src/settings/features/nextSongCard.ts
@@ -5882,10 +6370,8 @@ ${DISC}::after {
     });
     let cinemaObserver = null;
     let lastCinemaEl = null;
-    const CINEMA_SEL = ".Gs2EwEu259e_Q_vcVyCx";
-    const CINEMA_CONTROLS_HIDDEN = "fQmiHA0AxpagJx4dPiuu";
     function watchCinema() {
-      const el = document.querySelector(CINEMA_SEL);
+      const el = document.querySelector(".Root__cinema-view");
       if (el && el !== lastCinemaEl) {
         lastCinemaEl = el;
         if (cinemaObserver) cinemaObserver.disconnect();
@@ -5893,7 +6379,7 @@ ${DISC}::after {
           if (!card) return;
           card.classList.toggle(
             "nsc-cinema-hidden",
-            el.classList.contains(CINEMA_CONTROLS_HIDDEN)
+            el.classList.contains("Root__cinema-view--controls-hidden")
           );
         };
         cinemaObserver = new MutationObserver(apply);
@@ -5913,18 +6399,18 @@ ${DISC}::after {
     let nscBarObserver = null;
     let lastBarContainer = null;
     function watchBarContainer() {
-      const el = document.querySelector(".kUPoamhLb3kO_sjj.wRMAmo4RKCAZpoBA");
+      const el = getPlayerElement();
       if (el && el !== lastBarContainer) {
         lastBarContainer = el;
         if (nscBarObserver) nscBarObserver.disconnect();
         nscBarObserver = new MutationObserver(() => {
           if (!card) return;
-          const hidden = el.classList.contains("dwWT5Kw_H7IhSKjG");
+          const hidden = getComputedStyle(el).display === "none";
           card.style.display = hidden ? "none" : "";
         });
         nscBarObserver.observe(el, { attributes: true, attributeFilter: ["class"] });
         if (card) {
-          const hidden = el.classList.contains("dwWT5Kw_H7IhSKjG");
+          const hidden = getComputedStyle(el).display === "none";
           card.style.display = hidden ? "none" : "";
         }
       }
@@ -5934,7 +6420,7 @@ ${DISC}::after {
       if (!card) return;
       card.classList.toggle(
         "nsc-watchfeed-hidden",
-        !!document.querySelector('[data-testid="watch-feed-view"], .un3PUeMx_xrIybGTBlt_')
+        !!document.querySelector('[data-testid="watch-feed-view"]')
       );
     }
     setInterval(watchFeed, 1e3);
@@ -5950,162 +6436,65 @@ ${DISC}::after {
     blur: 7
   };
   function installNowPlayingViewCover() {
-    const TITLE_ROW = ".UXUskWTgjA0qL7pcA3ZO";
-    const TITLE_BOX = ".cPCPoUfABWzF8MgTHeZv";
-    const COVER_SLOT = ".jCysP9BT72Y3IxfwU5gD";
-    const CANVAS_VIDEO = ".A6FK744wQHPY6B6S2V1R > video";
-    const COVER_CLASS = "liquify-npv-cover";
-    const STYLE_ID18 = "liquify-npv-cover-style";
-    function getMode() {
-      return readLS(NPVC_MODE_KEY, NPVC_DEFAULTS.mode);
-    }
-    function getShowAlways() {
-      return readLS(NPVC_SHOW_ALWAYS_KEY, NPVC_DEFAULTS.showAlways) === "yes";
-    }
-    function getBlur() {
-      return readNum(NPVC_BLUR_KEY, NPVC_DEFAULTS.blur);
-    }
-    function isCanvasPlaying() {
-      return hasMountedCanvasMedia(document.querySelector(CANVAS_CONTAINER_SEL));
-    }
-    function coverUrl() {
-      const meta = Spicetify?.Player?.data?.item?.metadata || {};
-      const raw = meta.image_xlarge_url || meta.image_large_url || meta.image_url || meta.image_small_url || "";
-      return raw.startsWith("spotify:image:") ? `https://i.scdn.co/image/${raw.slice(14)}` : raw;
-    }
-    const LEAVE_MS = 220;
-    function removeCover() {
-      const covers = document.querySelectorAll(`.${COVER_CLASS}:not(.is-leaving)`);
-      if (covers.length === 0) return;
-      covers.forEach((el) => el.classList.add("is-leaving"));
-      setTimeout(() => {
-        covers.forEach((el) => el.remove());
-        if (!document.querySelector(`.${COVER_CLASS}`)) updateStyle(STYLE_ID18, "");
-      }, LEAVE_MS);
-    }
-    function placeCover(parent, mode) {
-      if (!parent) return;
-      const src = coverUrl();
-      let cover2 = parent.querySelector(`:scope > .${COVER_CLASS}:not(.is-leaving)`);
-      document.querySelectorAll(`.${COVER_CLASS}`).forEach((el) => {
-        if (el !== cover2) el.remove();
-      });
-      if (!cover2) {
-        cover2 = document.createElement("div");
-        cover2.className = COVER_CLASS;
-        const img2 = document.createElement("img");
-        img2.draggable = false;
-        img2.alt = "";
-        cover2.append(img2);
-        parent.prepend(cover2);
-      }
-      cover2.dataset.mode = mode;
-      const img = cover2.querySelector("img");
-      if (src && img.src !== src) img.src = src;
-    }
-    const BASE_CSS = `
-.${COVER_CLASS} {
-  position: relative;
-  overflow: hidden;
-  animation: liquify-npv-cover-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-.${COVER_CLASS} > img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: inherit;
-}
-.${COVER_CLASS}::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: var(--liquify-shadow);
-  pointer-events: none;
-}
-.${COVER_CLASS}.is-leaving {
-  animation: liquify-npv-cover-out ${LEAVE_MS}ms ease-in both;
-}
-@keyframes liquify-npv-cover-in {
-  from { opacity: 0; transform: scale(0.8); }
-}
-@keyframes liquify-npv-cover-out {
-  to { opacity: 0; transform: scale(0.85); }
-}`;
-    function css(mode) {
-      if (mode === "trackInfo") {
-        return `${BASE_CSS}
-${TITLE_BOX}:has(> .${COVER_CLASS}) {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  column-gap: 12px;
-  align-items: center;
-}
-${TITLE_BOX} > .${COVER_CLASS} {
-  grid-row: 1 / span 2;
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-}
-${TITLE_BOX}:has(> .${COVER_CLASS}) > :not(.${COVER_CLASS}) { grid-column: 2; }`;
-      }
-      if (mode === "outsideTrackInfo") {
-        return `${BASE_CSS}
-${TITLE_ROW} > .${COVER_CLASS} {
-  flex: none;
-  align-self: center;
-  width: 70px;
-  height: 70px;
-  margin-right: 12px;
-  border-radius: 14px;
-}`;
-      }
-      return `${BASE_CSS}
-${COVER_SLOT} > .${COVER_CLASS} {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border-radius: 20px;
-}
-${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
-    }
+    let scheduled = false;
     function apply() {
-      const mode = getMode();
-      if (mode === "off") {
-        removeCover();
-        return;
+      scheduled = false;
+      const panel = document.querySelector('[data-npv-root]');
+      const target = panel?.querySelector('.main-nowPlayingView-trackInfo');
+      const mode = readLS(NPVC_MODE_KEY, NPVC_DEFAULTS.mode);
+      const always = readLS(NPVC_SHOW_ALWAYS_KEY, NPVC_DEFAULTS.showAlways) === 'yes';
+      const video = panel?.querySelector('video');
+      const hasCanvas = !!video || hasMountedCanvasMedia(panel?.querySelector('.main-nowPlayingView-canvasVisualEnhancement'));
+      const src = panel?.querySelector('[data-testid="cover-art-slot"] img')?.src ||
+        document.querySelector('[data-testid="CoverSlotCollapsed__container"] img')?.src;
+      const enabled = !!target && !!src && mode !== 'off' && (mode === 'overCanvas' ? hasCanvas : always || hasCanvas);
+      const state = enabled ? mode : 'off';
+      if (panel && panel.dataset.liquifyCoverMode !== state) panel.dataset.liquifyCoverMode = state;
+      if (target && src) {
+        const value = `url(${JSON.stringify(src)})`;
+        if (target.style.getPropertyValue('--liquify-npv-image') !== value) target.style.setProperty('--liquify-npv-image', value);
+        if (panel.style.getPropertyValue('--liquify-npv-image') !== value) panel.style.setProperty('--liquify-npv-image', value);
       }
-      const canvas = isCanvasPlaying();
-      if (!canvas && (mode === "overCanvas" || !getShowAlways())) {
-        removeCover();
-        return;
-      }
-      const parent = mode === "trackInfo" ? document.querySelector(TITLE_BOX) : mode === "outsideTrackInfo" ? document.querySelector(TITLE_ROW) : document.querySelector(COVER_SLOT);
-      placeCover(parent, mode);
-      updateStyle(STYLE_ID18, css(mode));
+      updateStyle('liquify-npv-cover-compat', `
+        [data-npv-root][data-liquify-cover-mode="trackInfo"] .main-nowPlayingView-trackInfo,
+        [data-npv-root][data-liquify-cover-mode="outsideTrackInfo"] .main-nowPlayingView-trackInfo { position: relative; }
+        [data-liquify-cover-mode="trackInfo"] .main-nowPlayingView-trackInfo { padding-left: 84px !important; min-height: 80px; }
+        [data-liquify-cover-mode="outsideTrackInfo"] .main-nowPlayingView-trackInfo { margin-left: 82px; min-height: 80px; }
+        :is([data-liquify-cover-mode="trackInfo"], [data-liquify-cover-mode="outsideTrackInfo"]) .main-nowPlayingView-trackInfo::before {
+          content: ''; position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+          width: 56px; height: 56px; border-radius: 12px; background: var(--liquify-npv-image) center/cover;
+          pointer-events: none;
+        }
+        [data-liquify-cover-mode="outsideTrackInfo"] .main-nowPlayingView-trackInfo::before { left: -82px; width: 70px; height: 70px; }
+        [data-liquify-cover-mode="overCanvas"] video { filter: blur(${readNum(NPVC_BLUR_KEY, 7)}px) !important; }
+        [data-liquify-cover-mode="overCanvas"] .canvasVideoContainerNPV { position: relative; }
+        [data-liquify-cover-mode="overCanvas"] .canvasVideoContainerNPV::after {
+          content: ''; position: absolute; inset: 0; margin: auto; width: 80%; aspect-ratio: 1; max-height: 80%;
+          border-radius: 16px; background: var(--liquify-npv-image) center/contain no-repeat; z-index: 2; pointer-events: none;
+        }
+      `);
     }
-    (async () => {
-      while (!Spicetify?.Player?.addEventListener) await sleep(300);
-      Spicetify.Player.addEventListener("songchange", () => {
-        setTimeout(apply, 400);
-        setTimeout(apply, 1e3);
-      });
-    })();
-    setInterval(apply, 1500);
-    window.addEventListener("liquifyNpvcUpdate", () => {
-      removeCover();
-      setTimeout(apply, 100);
+    function schedule() {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(apply);
+    }
+    new MutationObserver(records => {
+      if (records.some(r => r.type === 'childList' || r.attributeName === 'src')) schedule();
+    }).observe(document.querySelector('.Root__top-container') || document.body, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['src']
     });
+    window.addEventListener('liquifyNpvcUpdate', schedule);
+    Spicetify.Player.addEventListener('songchange', schedule);
     apply();
   }
 
+
   // src/settings/features/actionBarBox.ts
-  var STYLE_ID6 = "liquify-action-bar-box-style";
-  var ACTION_BAR = ".WUHV3yvmh_gdGie5wFp4";
+  var STYLE_ID4 = "liquify-action-bar-box-style";
   function updateActionBarBoxCss(show) {
-    const css = show ? "" : `${ACTION_BAR} { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }`;
-    updateStyle(STYLE_ID6, css);
+    const css = show ? "" : ".main-actionBar-ActionBar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }";
+    updateStyle(STYLE_ID4, css);
   }
   function applyActionBarBox(mode) {
     const m2 = mode === "show" ? "show" : "hide";
@@ -6143,18 +6532,18 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   }
 
   // src/settings/features/sidebarBlur.ts
-  var STYLE_ID7 = "liquify-sidebar-blur-style";
+  var STYLE_ID5 = "liquify-sidebar-blur-style";
   var SIDEBAR_BLUR_DEFAULT = 24;
   var SIDEBARS = {
     left: {
       key: "liquify-sidebar-blur-left",
       amountKey: "liquify-sidebar-blur-left-amount",
-      selector: ".bQsutxbyIOatthweRHfK"
+      selector: ".Root__nav-bar"
     },
     right: {
       key: "liquify-sidebar-blur-right",
       amountKey: "liquify-sidebar-blur-right-amount",
-      selector: ".D0qWErHdvHknfXqr6zOl"
+      selector: ".Root__right-sidebar"
     }
   };
   function isSidebarBlurOn(side) {
@@ -6175,7 +6564,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
 }`
       );
     }
-    updateStyle(STYLE_ID7, rules.join("\n\n"));
+    updateStyle(STYLE_ID5, rules.join("\n\n"));
   }
   function setSidebarBlur(side, mode) {
     localStorage.setItem(SIDEBARS[side].key, mode === "on" ? "on" : "off");
@@ -6200,7 +6589,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   var FONT_BODY_KEY = "liquify-font-body";
   var FONT_HEADING_KEY = "liquify-font-heading";
   var FONT_DEFAULT = "default";
-  var STYLE_ID8 = "liquify-fonts-style";
+  var STYLE_ID6 = "liquify-fonts-style";
   var FAMILY_LINK_ID = "liquify-font-families";
   var PREVIEW_LINK_ID = "liquify-font-previews";
   var FONT_CATEGORIES = [
@@ -6281,7 +6670,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
     loadFamilies(FAMILY_LINK_ID, [body, heading]);
     const rules = [];
     if (body !== FONT_DEFAULT) {
-      rules.push(`body, body *:not(svg):not(svg *) {
+      rules.push(`body, body :where(*:not(svg):not(svg *)) {
   font-family: "${body}", ${SPOTIFY_STACK} !important;
 }`);
     }
@@ -6291,7 +6680,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   font-family: ${stack} !important;
 }`);
     }
-    updateStyle(STYLE_ID8, rules.join("\n\n"));
+    updateStyle(STYLE_ID6, rules.join("\n\n"));
   }
   function setFont(which, family) {
     localStorage.setItem(which === "body" ? FONT_BODY_KEY : FONT_HEADING_KEY, family);
@@ -6307,13 +6696,13 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   }
 
   // src/settings/features/localFilesCard.ts
-  var STYLE_ID9 = "liquify-local-files-style";
+  var STYLE_ID7 = "liquify-local-files-style";
   var LOCAL_FILES_TRANSPARENT_KEY = "liquify-local-files-transparent";
-  var LOCAL_FILES_CARD = ".Yfd3sCOSw_wfDQdq5eSy";
+  var LOCAL_FILES_CARD = '[data-testid="home-page"] a[href="/collection/local-files"], [data-testid="home-page"] [data-encore-id="card"]:has(a[href="/collection/local-files"])';
   function applyCss4() {
     const on = readLS(LOCAL_FILES_TRANSPARENT_KEY, "off") === "on";
     updateStyle(
-      STYLE_ID9,
+      STYLE_ID7,
       on ? `${LOCAL_FILES_CARD} {
   background-color: transparent !important;
   /* The fill was the only thing giving the entry an edge; the theme's rim takes
@@ -6331,12 +6720,11 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   }
 
   // src/settings/features/homeLayout.ts
-  var STYLE_ID10 = "liquify-home-layout-style";
+  var STYLE_ID8 = "liquify-home-layout-style";
   var HOME_LAYOUT_KEY = "liquify-home-layout";
-  var HOME_SECTIONS = ".mpXpsL8sGx7xHzYAb5X7, .QVX8Getzkg44Frgfu0wF, .YeMXHXUM5LesBemNwrlw";
   function updateHomeLayoutCss(on) {
-    const css = on ? `${HOME_SECTIONS} { padding: 16px; box-shadow: var(--liquify-shadow); border-radius: 20px; }.YeMXHXUM5LesBemNwrlw .X433eA5ps5SoaH2ccjn0 { --margin-start: 0px; --margin-end: 0px; }.QVX8Getzkg44Frgfu0wF .L5oPevXEAY1GuRJ9a1_j { margin-inline: 0; box-sizing: border-box; }` : `${HOME_SECTIONS} { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }`;
-    updateStyle(STYLE_ID10, css);
+    const css = on ? ".main-home-content section { padding: 1rem; gap: .5rem; box-shadow: var(--liquify-shadow); border-radius: 20px; }.main-card-cardContainer, .LXxEtdyreLg2dh0C { height: calc(100% - 1px); }.XtiGtrj_ysgd8Bmv { --margin-start: 0px; --margin-end: 0px; }" : ".main-home-content section { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }";
+    updateStyle(STYLE_ID8, css);
   }
   function applyHomeLayout(mode) {
     const m2 = mode === "on" ? "on" : "off";
@@ -6349,23 +6737,18 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   }
 
   // src/settings/features/compactPlayer.ts
-  var STYLE_ID11 = "liquify-compact-player-style";
+  var STYLE_ID9 = "liquify-compact-player-style";
   function updateCss(enabled) {
     const css = enabled ? [
-      `${PLAYER_BAR} { height: 65px !important; border-radius: 20px !important; }`,
+      ".Root__now-playing-bar { height: 65px !important; border-radius: 20px !important; }",
       ".main-nowPlayingBar-nowPlayingBar { height: 50px !important; }",
       ".main-nowPlayingBar-center { width: 60% !important; }",
-      '[data-testid="player-controls"] { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 0px !important; margin-left: 15px !important; }',
+      ".player-controls { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 0px !important; margin-left: 15px !important; }",
       ".player-controls__buttons { width: fit-content !important; margin-bottom: 0px !important; }",
-      '[data-testid="player-controls"] .playback-bar { flex: 1 1 auto; min-width: 0; }',
-      // the third text line under title and artists ("Lossless" etc.) doesn't fit the compact bar
-      '[data-testid="now-playing-widget"] .uCxEsNf7zhuEo_XhzBel { display: none !important; }',
-      // A smaller cover to fit the 50px row. Not !important, so Comfy Cover
-      // Art's explicit size still wins when both are on.
-      `.Root__top-container ${PLAYBAR_COVER_SLOT} { width: 42px; height: 42px; }`,
-      `.Root__top-container ${PLAYBAR_COVER_SLOT} :is(div, button, img, video) { width: 100%; height: 100%; }`
+      ".player-controls .playback-bar { flex: 1 1 auto; min-width: 0; }",
+      ".main-connectBar-connectBar { display: none !important; }"
     ].join("\n") : "";
-    updateStyle(STYLE_ID11, css);
+    updateStyle(STYLE_ID9, css);
   }
   function applyCompactPlayer(mode) {
     const m2 = mode === "on" ? "on" : "off";
@@ -6407,11 +6790,10 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
   }
 
   // src/settings/features/playlistHeader.ts
-  var STYLE_ID12 = "liquify-playlist-header-style";
-  var HEADER = ".UbzV6GmaFXRSbQNfaAZL.ajHBc3IuiQpQkTmGSCcr";
+  var STYLE_ID10 = "liquify-playlist-header-style";
   function updatePlaylistHeaderCss(show) {
-    const css = show ? "" : `${HEADER} { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }`;
-    updateStyle(STYLE_ID12, css);
+    const css = show ? "" : ".main-entityHeader-container { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; }";
+    updateStyle(STYLE_ID10, css);
   }
   function applyPlaylistHeader(mode) {
     const m2 = mode === "show" ? "show" : "hide";
@@ -6425,7 +6807,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
 
   // src/settings/features/playerControlIcons.ts
   var PLAYER_ICONS_KEY = "liquify-player-icons";
-  var STYLE_ID13 = "liquify-player-control-icons-style";
+  var STYLE_ID11 = "liquify-player-control-icons-style";
   var ICON = "liquify-player-icon";
   var PLAYING = "is-playing";
   var SKIPPING = "is-skipping";
@@ -6645,11 +7027,11 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
     if (!isPlayerControlIconsEnabled()) {
       win[OBSERVER_KEY]?.disconnect?.();
       win[OBSERVER_KEY] = void 0;
-      updateStyle(STYLE_ID13, getPlayerControlIconsDisabledCss());
+      updateStyle(STYLE_ID11, getPlayerControlIconsDisabledCss());
       removeIcons();
       return;
     }
-    updateStyle(STYLE_ID13, getPlayerControlIconCss());
+    updateStyle(STYLE_ID11, getPlayerControlIconCss());
     applyPlayerControlIcons();
     installPressFeedback(win);
     if (win[OBSERVER_KEY]) return;
@@ -6722,7 +7104,7 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
   }
 
   // src/settings/features/shareButtonTransition.ts
-  var SHARE_BTN_SEL = ".main-watchFeed-shareButtonHidden";
+  var SHARE_BTN_SEL = '.main-watchFeed-shareButtonHidden, [data-npv-root] .main-nowPlayingView-trackInfo button[aria-hidden]';
   var TRANSITION = "opacity .3s ease-out, width .3s ease-out";
   function applyShareButtonTransition() {
     document.querySelectorAll(SHARE_BTN_SEL).forEach((btn) => {
@@ -6759,28 +7141,24 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
 
   // src/settings/features/themedLyrics.ts
   var THEMED_LYRICS_KEY = "liquify-themed-lyrics";
-  var LYRICS_FONT_SIZE_KEY = "liquify-lyrics-font-size-pct";
-  var LYRICS_FONT_SIZE_DEFAULT = 130;
+  var LYRICS_FONT_SIZE_KEY = "liquify-lyrics-font-size";
+  var LYRICS_FONT_SIZE_DEFAULT = 70;
   var LYRICS_MARGIN_KEY = "liquify-lyrics-margin";
   var LYRICS_MARGIN_DEFAULT = 56;
-  var LINE = ".mzAT53py1LJkDA4izCjN";
-  var ACTIVE_LINE = `${LINE}.N6tht_GLY5suoRAtaggy`;
-  var EMPTY_LINE = ".jfIYxRHLjghbwr41cXDo";
-  var LINES_ROOT = ".sVA57fPPVPMNO7STKL7s";
   function applyCss7() {
     const themed = readLS(THEMED_LYRICS_KEY, "on") === "on";
     const size = readNum(LYRICS_FONT_SIZE_KEY, LYRICS_FONT_SIZE_DEFAULT);
     const margin = readNum(LYRICS_MARGIN_KEY, LYRICS_MARGIN_DEFAULT);
-    const css = themed ? `${ACTIVE_LINE} { font-size: ${size}%; }
-${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
+    const css = themed ? `.lyrics-lyricsContent-lyric.lyrics-lyricsContent-active { font-size: ${size}px; }
+.lyrics-lyricsContent-lyric:not(.liquify-lyric-spacer) { margin-bottom: ${margin}px; }` : `.lyrics-lyricsContent-lyric:not(.liquify-lyric-spacer) { margin-bottom: .6em; }`;
     updateStyle("liquify-themed-lyrics", css);
   }
   function setThemedLyrics(on) {
     localStorage.setItem(THEMED_LYRICS_KEY, on ? "on" : "off");
     applyCss7();
   }
-  function setLyricsFontSize(pct) {
-    localStorage.setItem(LYRICS_FONT_SIZE_KEY, String(pct));
+  function setLyricsFontSize(px) {
+    localStorage.setItem(LYRICS_FONT_SIZE_KEY, String(px));
     applyCss7();
   }
   function setLyricsMargin(px) {
@@ -6801,16 +7179,17 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
       top: 0;
       right: 0;
       z-index: 999;
-      backdrop-filter: brightness(2.12);
+      backdrop-filter: blur(var(--liquify-backdrop-blur, 32px));
+      background: rgba(20, 22, 27, .12);
       width: ${width}px !important;
       height: ${height}px !important;
       pointer-events: none;
       transition: all 0.25s ease;
       opacity: ${opacity} !important;
     }
-    /* Hide the window-control overlay only while the cinema view (.Gs2Ew\u2026) has
-       its controls hidden (.fQmiH\u2026); normal cinema mode keeps them visible. */
-    .Root__top-container:has(.Gs2EwEu259e_Q_vcVyCx.fQmiHA0AxpagJx4dPiuu)::after {
+    /* Hide the window-control overlay only while cinema view has its controls
+       hidden (normal cinema mode keeps them visible). */
+    .Root__top-container:has(.Root__cinema-view.Root__cinema-view--controls-hidden)::after {
       opacity: 0 !important;
     }
     /* Fullscreen has no window buttons, so nothing needs reserving for them. */
@@ -6832,7 +7211,7 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
     const screenW = window.screen?.width ?? 0;
     const screenH = window.screen?.height ?? 0;
     if (!screenW || !screenH) return false;
-    return window.innerWidth >= screenW - 1 && window.innerHeight >= screenH - 1;
+    return window.outerWidth >= screenW - 1 && window.outerHeight >= screenH - 1;
   }
   function installFullscreenWatcher() {
     const anyWin = window;
@@ -6848,10 +7227,10 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
   }
 
   // src/settings/features/transparentPlayer.ts
-  var STYLE_ID14 = "liquify-transparent-player-style";
+  var STYLE_ID12 = "liquify-transparent-player-style";
   function updateTransparentPlayerCss(transparent) {
-    const css = transparent ? `${PLAYER_BAR} { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }` : "";
-    updateStyle(STYLE_ID14, css);
+    const css = transparent ? ".Root__now-playing-bar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }" : "";
+    updateStyle(STYLE_ID12, css);
   }
   function applyTransparentPlayer(mode) {
     const m2 = mode === "on" ? "on" : "off";
@@ -6864,7 +7243,7 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
   }
 
   // src/settings/features/floatingPlayer.ts
-  var STYLE_ID15 = "liquify-floating-player-style";
+  var STYLE_ID13 = "liquify-floating-player-style";
   var FLOATING_PLAYER_KEY = "liquify-floating-player";
   function updateFloatingPlayerCss(on) {
     const css = on ? [
@@ -6880,17 +7259,20 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
       // vanished behind cinema and fullscreen. At 6 it sits above cinema with
       // the controls up, and still lets cinema cover it once they are hidden —
       // which is the point of that mode.
-      // Out of flow, the bar's grid row (sized auto) collapses, so the main view
-      // and both sidebars run down behind it.
-      `${PLAYER_BAR} { position: absolute; bottom: 0px; justify-self: center; z-index: var(--now-playing-bar-grid-area-z-index, 6); }`,
-      // The scroll content of the library, the main view and the right sidebar,
-      // plus the settings and marketplace custom apps.
-      ".main-yourLibraryX-libraryRootlist,.main-view-container__scroll-node-child,.WosRx6NbfxOIFkdobeyk,.x-settings-container,.marketplace-footer { padding-bottom: 7rem !important; }",
+      ".Root__now-playing-bar { position: absolute; bottom: 0px; justify-self: center; z-index: var(--now-playing-bar-grid-area-z-index, 6); }",
+      ".JlQyoTD6puMgqY_y,.main-yourLibraryX-libraryRootlist,.main-nowPlayingView-panel,.L1PjPOgsoqc2nbpl,.QbBd77Gr02YOoZzr,.YT5cYwULCoyD6pGh,.x-settings-container,.main-yourLibraryX-libraryRootlist.YPRhFiIfXdwCZJ9q,.OjXmN1Ml9AEI6JbR,.tsCJQaqF4ALEqTft,.marketplace-footer { padding-bottom: 7rem !important; }",
+      // user.css pulls the controls-hidden cinema view 90px further down than
+      // Spotify does, to swallow the docked bar's strip. The floating bar is
+      // out of flow and no longer leaves that strip behind, so the same offset
+      // drags the view 90px too far.
+      ".Root__cinema-view.Root__cinema-view--controls-hidden { margin-bottom: calc(0px - var(--bottom-bar-height) - var(--panel-gap)) !important; }",
+      ".aotfMYhXr8Ag8I7a { padding-bottom: 6rem !important; }",
+      ".goTtSSnEdE9nZjky { padding-block-end: 7rem !important; }",
       // Version-agnostic: Encore's build hash moved from e-10451 to e-10810
       // with the update, which left this one silently matching nothing.
       'span.encore-inverted-light-set[class*="button-primary__inner"][class*="legacy-button--medium"] { margin-bottom: 7rem !important; }'
     ].join("\n") : "";
-    updateStyle(STYLE_ID15, css);
+    updateStyle(STYLE_ID13, css);
   }
   function applyFloatingPlayer(mode) {
     const m2 = mode === "on" ? "on" : "off";
@@ -6902,10 +7284,10 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
   }
 
   // src/settings/features/connectBar.ts
-  var STYLE_ID16 = "liquify-connect-bar-style";
+  var STYLE_ID14 = "liquify-connect-bar-style";
   var CONNECT_BAR_KEY = "liquify-connect-bar";
   function updateConnectBarCss(show) {
-    updateStyle(STYLE_ID16, show ? "" : ".main-connectBar-connectBar { display: none !important; }");
+    updateStyle(STYLE_ID14, show ? "" : ".main-connectBar-connectBar { display: none !important; }");
   }
   function applyConnectBar(mode) {
     const m2 = mode === "show" ? "show" : "hide";
@@ -6936,123 +7318,152 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
   }
 
   // src/settings/features/visualizers.ts
-  var STYLE_ID17 = "liquify-visualizer-style";
-  var PLAYLIST_EQ = "img.YQ0uPtmHEvHsS8MszwpG";
-  var HOME_EQ = "img.Paf_Idn_uHcJizNgwOAs";
-  var HOME_SHORTCUT = ".x0Tk9K1tu0sFwdD5iNF5";
-  function ensureStyle2() {
-    if (document.getElementById(STYLE_ID17)) return;
-    const style = document.createElement("style");
-    style.id = STYLE_ID17;
-    style.textContent = `
-/* Rythora's equaliser: centre-anchored bars whose level swings between 30% and
-   full, each bar at its own fixed tempo and offset (BAR_TIMINGS). The level is a
-   registered property driving the height rather than a scaleY: a scale squashes
-   the rounded ends flat at low levels, the height keeps them round. */
-@property --liquify-eq-level {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 1;
-}
-@keyframes liquify-eq-pulse {
-  from { --liquify-eq-level: 0.3; }
-  to { --liquify-eq-level: 1; }
-}
-.custom-playing-bar,
-.home-visualizer-bar {
-  top: 50%;
-  translate: 0 -50%;
-  height: calc(var(--liquify-eq-full, 16px) * var(--liquify-eq-level));
-  animation: liquify-eq-pulse var(--liquify-eq-duration, 0.6s) ease-in-out var(--liquify-eq-delay, 0s) infinite alternate;
-}
-[role="row"]:hover [data-liquify-visualizer-wrapper],
-${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
-  display: none;
-}
-/* Spotify's own animated equaliser image stays in the row; ours takes its place. */
-[data-liquify-visualizer-wrapper] ~ ${PLAYLIST_EQ} {
-  visibility: hidden;
-}`;
-    document.head.appendChild(style);
-  }
-  var BAR_TIMINGS = [
-    { duration: 0.56, delay: -0.42 },
-    { duration: 0.7, delay: -0.16 },
-    { duration: 0.5, delay: -0.55 },
-    { duration: 0.78, delay: -0.3 },
-    { duration: 0.61, delay: -0.62 }
-  ];
-  var BAR_COUNT = BAR_TIMINGS.length;
-  var BAR_WIDTH = 3.4;
-  var BAR_PITCH = 4.6;
-  function createBar(className, index, fullH) {
-    const bar = document.createElement("div");
-    bar.classList.add(className);
-    bar.style.position = "absolute";
-    bar.style.left = index * BAR_PITCH + "px";
-    bar.style.width = BAR_WIDTH + "px";
-    bar.style.borderRadius = BAR_WIDTH / 2 + "px";
-    bar.style.background = "currentColor";
-    const timing = BAR_TIMINGS[index];
-    bar.style.setProperty("--liquify-eq-full", `${fullH}px`);
-    bar.style.setProperty("--liquify-eq-duration", `${timing.duration}s`);
-    bar.style.setProperty("--liquify-eq-delay", `${timing.delay}s`);
-    return bar;
-  }
   function installPlaylistIndicatorVisualizer() {
     (async function() {
       while (!Spicetify?.Player || !Spicetify?.Player?.data) await sleep(300);
-      ensureStyle2();
       let lastSvg = null;
       let lastIndicator = null;
-      function removeBars() {
+      function createBars(indicator) {
         if (lastSvg) {
           try {
             lastSvg.remove();
           } catch {
           }
+          lastSvg = null;
         }
-        lastSvg = null;
-        lastIndicator = null;
-      }
-      function createBars(indicator) {
-        removeBars();
         if (!indicator || !indicator.parentNode) return;
         const parent = indicator.parentNode;
-        const cellHeight = parent.offsetHeight || 20;
-        const rectHeight = Math.max(20, cellHeight * 1.4);
+        const rectHeight = parent.offsetHeight || 20;
         const wrapper = document.createElement("div");
         wrapper.style.position = "absolute";
         wrapper.style.left = "0px";
-        wrapper.style.top = (cellHeight - rectHeight) / 2 + "px";
+        wrapper.style.top = "0px";
         wrapper.style.width = "22px";
         wrapper.style.height = rectHeight + "px";
         wrapper.style.overflow = "hidden";
         wrapper.style.pointerEvents = "none";
         wrapper.style.color = "var(--spice-button-active, var(--spice-button, var(--spice-text, #1ed760)))";
         wrapper.dataset.liquifyVisualizerWrapper = "1";
+        const bars = [];
+        const speeds = [];
+        const phases = [];
         const fullH = Math.max(8, rectHeight * 0.8);
-        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("custom-playing-bar", i2, fullH));
+        for (let i2 = 0; i2 < 4; i2++) {
+          const bar = document.createElement("div");
+          bar.classList.add("custom-playing-bar");
+          bar.style.position = "absolute";
+          bar.style.left = i2 * 6 + "px";
+          bar.style.width = "4px";
+          bar.style.height = fullH + "px";
+          bar.style.top = rectHeight / 2 - fullH / 2 + "px";
+          bar.style.borderRadius = "2px";
+          bar.style.background = "currentColor";
+          bar.style.willChange = "clip-path";
+          wrapper.appendChild(bar);
+          bars.push(bar);
+          speeds.push(7e-3 + Math.random() * 6e-3);
+          phases.push(Math.random() * Math.PI * 2);
+        }
         parent.insertBefore(wrapper, indicator);
         lastSvg = wrapper;
         lastIndicator = indicator;
+        let lastHeight = rectHeight;
+        const start2 = performance.now();
+        function animate() {
+          if (lastSvg !== wrapper || !lastIndicator || !wrapper.isConnected) return;
+          const parentNode = lastIndicator.parentNode;
+          if (!parentNode) {
+            try {
+              lastSvg.remove();
+            } catch {
+            }
+            lastSvg = null;
+            lastIndicator = null;
+            return;
+          }
+          const playButton = parentNode.querySelector?.(".main-trackList-rowImagePlayButton");
+          const isPlaying2 = Spicetify.Player.isPlaying() && (!playButton || window.getComputedStyle(playButton).opacity === "0");
+          if (!isPlaying2) {
+            try {
+              lastSvg.remove();
+            } catch {
+            }
+            lastSvg = null;
+            lastIndicator = null;
+            return;
+          }
+          const now = performance.now();
+          const t = now - start2;
+          const currentRectHeight = parentNode.offsetHeight || rectHeight;
+          const maxHeight = Math.max(8, currentRectHeight * 0.8);
+          const minHeight = 4;
+          if (lastHeight !== currentRectHeight) {
+            lastSvg.style.height = currentRectHeight + "px";
+            const top = currentRectHeight / 2 - maxHeight / 2;
+            bars.forEach((bar) => {
+              bar.style.height = maxHeight + "px";
+              bar.style.top = top + "px";
+            });
+            lastHeight = currentRectHeight;
+          }
+          bars.forEach((bar, i2) => {
+            const height = minHeight + (Math.sin(t * speeds[i2] + phases[i2]) + 1) / 2 * (maxHeight - minHeight);
+            const inset = (maxHeight - height) / 2;
+            bar.style.clipPath = `inset(${inset}px 0 ${inset}px 0 round 2px)`;
+          });
+          requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
       }
       async function updateIndicator() {
-        const indicator = document.querySelector(`${PLAYLIST_EQ}, [data-playing-indicator]`);
-        if (!indicator || !indicator.parentNode) {
-          removeBars();
+        const indicator = document.querySelector(
+          '[data-testid="tracklist-row"] img[src*="/equaliser-"], [role="row"] img[src*="/equaliser-"], [data-playing-indicator]'
+        );
+        if (!indicator) {
+          if (lastSvg) {
+            try {
+              lastSvg.remove();
+            } catch {
+            }
+            lastSvg = null;
+            lastIndicator = null;
+          }
           return false;
         }
-        const isPlaying2 = Spicetify.Player.isPlaying();
-        if (!isPlaying2) {
-          removeBars();
-          return true;
+        if (!indicator.parentNode) {
+          if (lastSvg) {
+            try {
+              lastSvg.remove();
+            } catch {
+            }
+            lastSvg = null;
+            lastIndicator = null;
+          }
+          return false;
         }
-        if (indicator !== lastIndicator || !lastSvg?.isConnected) createBars(indicator);
+        const parentNode = indicator.parentNode;
+        const playButton = parentNode.querySelector?.(".main-trackList-rowImagePlayButton");
+        const isPlaying2 = Spicetify.Player.isPlaying() && (!playButton || window.getComputedStyle(playButton).opacity === "0");
+        if (lastSvg && (!isPlaying2 || !lastSvg.isConnected)) {
+          try {
+            lastSvg.remove();
+          } catch {
+          }
+          lastSvg = null;
+          lastIndicator = null;
+        }
+        if (isPlaying2 && indicator !== lastIndicator) createBars(indicator);
         return true;
       }
       Spicetify.Player.addEventListener("songchange", () => {
-        removeBars();
+        if (lastSvg) {
+          try {
+            lastSvg.remove();
+          } catch {
+          }
+          lastSvg = null;
+          lastIndicator = null;
+        }
         void updateIndicator();
       });
       setInterval(() => void updateIndicator(), 100);
@@ -7060,9 +7471,8 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
   }
   function installHomeScreenVisualizer() {
     (function() {
-      ensureStyle2();
       const homeSvgs = /* @__PURE__ */ new Map();
-      let wasPlaying = false;
+      let wasPlaying = Spicetify.Player.isPlaying();
       function createHomeVisualizer(img) {
         if (homeSvgs.has(img)) return;
         const parent = img.parentNode;
@@ -7079,36 +7489,81 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         wrapper.style.pointerEvents = "none";
         wrapper.style.color = "var(--spice-button-active, var(--spice-button, var(--spice-text, #1ed760)))";
         wrapper.style.flex = "0 0 auto";
-        wrapper.dataset.liquifyHomeVisualizer = "1";
+        const bars = [];
         const fullH = Math.max(8, imgHeight * 0.8);
-        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("home-visualizer-bar", i2, fullH));
+        for (let i2 = 0; i2 < 4; i2++) {
+          const bar = document.createElement("div");
+          bar.classList.add("home-visualizer-bar");
+          bar.style.position = "absolute";
+          bar.style.left = i2 * 6 + "px";
+          bar.style.width = "4px";
+          bar.style.height = fullH + "px";
+          bar.style.top = imgHeight / 2 - fullH / 2 + "px";
+          bar.style.borderRadius = "2px";
+          bar.style.background = "currentColor";
+          bar.style.willChange = "clip-path";
+          wrapper.appendChild(bar);
+          bars.push({
+            element: bar,
+            speed: 7e-3 + Math.random() * 6e-3,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+        const originalStyle = img.getAttribute("style");
         parent.insertBefore(wrapper, img);
         img.style.visibility = "hidden";
         img.style.width = "0px";
         img.style.height = "0px";
         img.style.margin = "0";
         img.style.padding = "0";
-        homeSvgs.set(img, { wrapper });
+        homeSvgs.set(img, { wrapper, bars, img, parent, originalStyle, lastHeight: imgHeight });
       }
       function updateHomeScreenVisualizer() {
-        for (const [img, data] of homeSvgs) {
-          if (!data.wrapper.isConnected) homeSvgs.delete(img);
-        }
-        document.querySelectorAll(HOME_EQ).forEach((img) => {
+        if (!Spicetify.Player.isPlaying()) return;
+        document.querySelectorAll('[data-testid="home-page"] img[src*="/equaliser-"], img.view-homeShortcutsGrid-equaliserImage').forEach((img) => {
           const im = img;
           if (!homeSvgs.has(im)) createHomeVisualizer(im);
         });
       }
-      let queued = false;
-      const homeObserver = new MutationObserver(() => {
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(() => {
-          queued = false;
-          updateHomeScreenVisualizer();
-        });
-      });
+      const homeObserver = new MutationObserver(() => updateHomeScreenVisualizer());
       homeObserver.observe(document.body, { childList: true, subtree: true });
+      const start2 = performance.now();
+      function animate() {
+        const t = performance.now() - start2;
+        for (const [img, data] of homeSvgs.entries()) {
+          if (!document.body.contains(data.wrapper)) {
+            homeSvgs.delete(img);
+            continue;
+          }
+          const imgEl = data.img;
+          const pH = data.parent.offsetHeight || 0;
+          const rectHeight = pH >= 16 ? pH : data.lastHeight || 24;
+          const maxHeight = Math.max(8, rectHeight * 0.8);
+          const minHeight = 4;
+          if (data.lastHeight !== rectHeight) {
+            data.wrapper.style.height = rectHeight + "px";
+            const top = rectHeight / 2 - maxHeight / 2;
+            data.bars.forEach((barData) => {
+              barData.element.style.height = maxHeight + "px";
+              barData.element.style.top = top + "px";
+            });
+            data.lastHeight = rectHeight;
+          }
+          const shortcut = data.wrapper.closest?.(".view-homeShortcutsGrid-shortcut");
+          try {
+            data.wrapper.style.display = shortcut && shortcut.matches?.(":hover") ? "none" : "block";
+          } catch {
+            data.wrapper.style.display = "block";
+          }
+          data.bars.forEach((barData) => {
+            const height = minHeight + (Math.sin(t * barData.speed + barData.phase) + 1) / 2 * (maxHeight - minHeight);
+            const inset = (maxHeight - height) / 2;
+            barData.element.style.clipPath = `inset(${inset}px 0 ${inset}px 0 round 2px)`;
+          });
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
       updateHomeScreenVisualizer();
       Spicetify.Player.addEventListener("onplaypause", () => {
         const isPlaying2 = Spicetify.Player.isPlaying();
@@ -7116,6 +7571,8 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
           for (const [, data] of homeSvgs.entries()) {
             try {
               data.wrapper?.remove();
+              if (data.originalStyle === null) data.img.removeAttribute("style");
+              else data.img.setAttribute("style", data.originalStyle);
             } catch {
             }
           }
@@ -8309,9 +8766,9 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         translate var(--transition) var(--ease),
         scale var(--transition) var(--ease);
       z-index: 3;
-      /* The knob body is OUR glass: theme.ts lists
-         ".liquid-toggle .indicator__liquid" as a glass target, so its
-         backdrop-filter paints the refraction here while the background stays transparent. The
+      /* The knob body is OUR glass: theme.ts attaches a GlassSurface to
+         ".liquid-toggle .indicator__liquid", so .liquify-glass--svg paints the
+         backdrop refraction here while the background stays transparent. The
          box-shadow only adds the glass rim/depth \u2014 the lens itself is the
          backdrop-filter, not these shadows. */
       overflow: hidden;
@@ -9490,6 +9947,8 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
     "liquify-player-custom-width",
     "liquify-player-custom-height",
     "liquify-player-radius",
+    "liquify-tc-width",
+    "liquify-tc-height",
     "liquify-playlist-header-mode",
     "liquify-action-bar-box-mode",
     "liquify-transparent-player",
@@ -10801,7 +11260,7 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
           setThemedLyrics(checked);
         }
       }
-    )), themedLyrics === "on" && /* @__PURE__ */ React.createElement("div", { className: "liquifyRow" }, /* @__PURE__ */ React.createElement("div", { className: "liquifyLabel" }, t.lyricsFontSize || "Lyrics Font Size:"), /* @__PURE__ */ React.createElement(Stepper, { value: lyricsFontSize, min: 50, max: 300, onChange: (v2) => {
+    )), themedLyrics === "on" && /* @__PURE__ */ React.createElement("div", { className: "liquifyRow" }, /* @__PURE__ */ React.createElement("div", { className: "liquifyLabel" }, t.lyricsFontSize || "Lyrics Font Size:"), /* @__PURE__ */ React.createElement(Stepper, { value: lyricsFontSize, min: 10, max: 150, onChange: (v2) => {
       setLyricsFontSizeState(v2);
       setLyricsFontSize(v2);
     } })), themedLyrics === "on" && /* @__PURE__ */ React.createElement("div", { className: "liquifyRow" }, /* @__PURE__ */ React.createElement("div", { className: "liquifyLabel" }, t.lyricsMargin || "Lyrics Margin:"), /* @__PURE__ */ React.createElement(Stepper, { value: lyricsMargin, min: 0, max: 120, onChange: (v2) => {
@@ -11001,10 +11460,10 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
     if (mode === "dynamic") applyDynamicAccent();
   }
   function installDynamicAccentObserver(anyWin) {
-    if (anyWin.liquifyDynamicAccentInstalled) return;
-    anyWin.liquifyDynamicAccentInstalled = true;
+    if (anyWin.liquifyDynamicObserverTs) return;
+    anyWin.liquifyDynamicObserverTs = new MutationObserver(pushDynamicAccent);
+    anyWin.liquifyDynamicObserverTs.observe(document.body, { attributes: true, subtree: true });
     window.addEventListener("liquifyAccentColorReady", pushDynamicAccent);
-    pushDynamicAccent();
   }
   function registerSettingsModal(artistCtrl) {
     window.showLiquifySettingsMenu = () => {
@@ -11049,164 +11508,421 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
 
   // src/theme.ts
   var GLASS_TARGETS = [
-    { selector: ".main-topBar-background" },
-    { selector: ".zddkQq3wlxEOg6aa", blur: 5 },
-    { selector: ".main-trackList-trackListHeader" },
-    { selector: ".z0qdvwslOFVOAihShLIq" },
-    { selector: ".main-globalNav-searchInputContainer .main-topBar-searchBar" },
-    { selector: ".Root__globalNav .main-globalNav-navLink" },
-    { selector: ".Root__globalNav .DoxYADBBjYMvoYwl7QPg" },
-    { selector: ".NJh1B8rnlSUlK7sY", blur: 5 },
-    { selector: ".search-searchCategory-carouselButton" },
-    { selector: ".e-10451-box--tinted" },
-    { selector: ".main-entityHeader-container" },
-    { selector: ".main-entityHeader-imageContainerWrapper" },
-    { selector: ".main-actionBar-ActionBar" },
-    { selector: ".main-nowPlayingView-headerWrapper" },
-    { selector: ".main-nowPlayingView-section" },
-    { selector: ".main-nowPlayingView-trackInfo" },
-    { selector: ".main-contextMenu-tippy" },
-    { selector: ".PromotionButtonTooltip-module_tooltip-animation__cE-rt" },
-    { selector: ".iiX8td2tfVETS09_ button" },
-    { selector: ".gpBiAnJHb1gq46qV" },
-    { selector: ".view-homeShortcutsGrid-shortcut" },
-    { selector: ".main-home-filterChipsSection" },
-    { selector: "dialog" },
-    { selector: ".main-topBar-buddyFeed" },
-    { selector: ".main-actionButtons-button" },
-    { selector: ".main-userWidget-box" },
-    { selector: ".main-globalNav-historyButtons" },
-    { selector: ".EU1ylDKh7s2oMU0g" },
-    { selector: ".VwcQJ4Zsf0JKD3Ls" },
-    { selector: ".KQDsZX3kwwuAFpE8" },
-    { selector: ".KFAJvMWTSagxYXGC" },
-    { selector: ".main-trackList-trackListRow.q8suB2R_XkoUyIeZ" },
-    { selector: ".main-nowPlayingView-actionButton" },
-    { selector: ".main-playlistEditDetailsModal-container" },
-    { selector: ".main-playlistEditDetailsModal-imageDropDownButton" },
-    { selector: ".mpXpsL8sGx7xHzYAb5X7" },
-    { selector: ".QVX8Getzkg44Frgfu0wF" },
-    { selector: ".YeMXHXUM5LesBemNwrlw" },
-    { selector: ".VyDGISqVe_mffhTkwoOB" },
-    { selector: ".os-scrollbar-handle" },
-    { selector: ".JDUQ8zTo6EUgHoYt" },
-    { selector: ".B9ji6YIpLSUHiyxx" },
-    { selector: ".gu0S9_98ZXIo5DaV" },
-    { selector: ".SUjhgyMvTou7TddO" },
-    { selector: ".ERRo1Br0ZQtJYVhz" },
-    { selector: ".LR7w41pC8ccVc11Q" },
-    { selector: ".VsYY0YB3c4lmhoDI" },
-    { selector: ".main-shelf-shelf" },
-    { selector: ".CO34wNPAbR8mpcdD" },
-    { selector: ".JthDv0xUCm8rLhu6" },
-    { selector: ".tlq9Tt69FX4bauLX" },
-    { selector: ".x-settings-section" },
-    { selector: ".fa_L1qIbh7QDDd_h" },
-    { selector: ".TguLwQ522LIEgpK_.IxVxBUbV5M5tGaEx" },
-    { selector: ".HOf9H18Ya0DkJ4_K" },
-    { selector: ".main-nowPlayingView-onTourItemGrid:hover" },
-    { selector: ".qm0mrbeno_z0mpoo" },
-    { selector: ".N3kf5S8O84aeaCZu" },
-    { selector: ".J8g7rZ2MDknxmiYP" },
-    { selector: ".Root__cinema-view", blur: 10 },
-    { selector: ".n5KI8mwa5o8qbn4b" },
-    { selector: ".vado7sbDrEsKhSmn" },
-    { selector: ".main-embedWidgetGenerator-container" },
-    { selector: ".e-10451-box--elevated" },
-    { selector: ".Wzl40f9FIUD91O2o" },
-    { selector: ".mcZzjuAJUvE9X4gX", blur: 10, before: true },
-    { selector: ".Htdd9HRV28F07Dwl" },
-    { selector: ".p67WtOnm9lsRLOu2" },
-    { selector: ".JLkvt5ABTQYw_rG7" },
-    { selector: ".mKvcoJ_veYlcHwOz" },
-    { selector: ".tMcqYZ2om0nYbgrw" },
-    { selector: ".yZCluNwEsPD2zYyY" },
-    { selector: ".Hrce4GF4EEkPJdBI" },
-    { selector: ".EpfIE3glwAOGcNT6" },
-    { selector: ".main-contextMenu-menu", blur: 5, before: true, brightness: 0.7 },
-    // before: a backdrop-filter on the menu itself would make it the containing block
-    // of its nested submenus, which its overflow:auto would then clip
-    { selector: ".l1Ov7CMEDnAqk63BPZvI", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".WwpyuVjaoJUdGwq5SfNQ", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".ViRU4WGs4wlDqn0wUPay", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".xamNkt5LX9o8aL1q", blur: 5, before: true },
-    { selector: ".marketplace-header", before: true },
-    { selector: ".marketplace-tabBar-active" },
-    { selector: ".Dropdown-menu" },
-    { selector: "#marketplace-readme" },
-    { selector: ".liquifySettingsPanel", blur: 5, brightness: 0.8 },
-    { selector: ".liquifySelectMenu", brightness: 0.8 },
-    { selector: ".liquifySectionNavScrollBtn" },
-    { selector: ".liquid-toggle .indicator__liquid", distortion: -14, chromatic: false },
-    { selector: "#liquify-next-song-card" },
-    { selector: ".main-card-card" },
-    { selector: "#liquify-settings-gear-btn" },
-    { selector: ".artist-artistDiscography-topBar.artist-artistDiscography-topBarScrolled" },
-    { selector: ".wJiY1vDfuci2a4db" },
-    { selector: ".oc3OomY6r9UoIEQ0" },
-    { selector: ".oReO3E1Df2odSFHX" },
-    { selector: ".fA6CNWFY1WQBCde9" },
-    { selector: ".main-trackCreditsModal-container" },
-    { selector: ".TGvpaalpJK0BKYYL", blur: 5 },
-    { selector: ".edvX5XPBIXITSQoH" },
-    { selector: ".znOINyqAy7ivIGbQyrbt", blur: 5 },
-    { selector: ".iGRaSZDa1r0m21aF6oZq" },
-    { selector: ".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV" },
-    { selector: ".yfJeY2Xi99dPOe6fsIha" },
-    { selector: ".qPY4gsmEW6Bq3CnNXAIE .X6OstObvuolbOo_pF6XN" },
-    { selector: ".x0Tk9K1tu0sFwdD5iNF5" },
-    { selector: ".LNpoPDYnF14Zg2Ml0SEK" },
-    { selector: ".yanzBsLcAL8wDzLb8QrU" },
-    { selector: ".QJeB8A9apRR4gkmZlnSM" },
-    { selector: ".UbzV6GmaFXRSbQNfaAZL.ajHBc3IuiQpQkTmGSCcr" },
-    { selector: ".NG0KBybUCTo8_SxXHF3N" },
-    { selector: ".zyugqDUpsiWa8v7oczU1" },
-    { selector: ".h3nJTxxmxIYRP5Aft1CC.QfR1lK07GZcvLZKPXHPP" },
-    { selector: ".e-10860-legacy-box--tinted" },
-    { selector: ".goKxWei7aIJdA857U744" },
-    { selector: ".UbzV6GmaFXRSbQNfaAZL.gmb9NAvXgkg8XFMlNTNR" },
-    { selector: ".qtQr7uPKnGMSxLWgth54" },
-    { selector: ".PhrrxnpQqpJQdqWtlyIj" },
-    { selector: ".zJpJ7DGpm__TAUnMYhfg" },
-    { selector: ".WUHV3yvmh_gdGie5wFp4" },
-    { selector: ".b0kbWFp7K9_JqU7W7FqI" },
-    { selector: ".JOsq_4H0UgeETLvv6Wah" },
-    { selector: ".WbemFLA2iwaTLbng7jdc" },
-    { selector: ".ZAU9wS6jqWfJxKTQvyfH" },
-    { selector: ".mhioaci0tNPZ1eN4nXbB" },
-    { selector: ".RI3lDBrimDPsR0FtLS3k" },
-    { selector: ".VBHQyT1xMnuK6q3v04tx.zsGE6QfwHX7ZUleMODWP .nVyDKVjzDUKN8CY7oili" },
-    { selector: ".EBmKeFEo2GOt4N3G7uoi" },
-    { selector: ".POvZRseCI_oO9LIu3eiN" },
-    { selector: ".wzC6IOFGHM0mopyh8H3D" },
-    { selector: ".EYVg8yEsGD4dWVtkJFso" },
-    { selector: ".fTcPW1opaLJf91ygHA_P" },
-    { selector: ".OBaDjdU835YN09jcSuBy.t7AyCiAhZeUyLQUW23IY" },
-    { selector: ".RHKi_XpRWCqN6ta7KH69" },
-    { selector: ".sui3ec_WMaK0b1S8PPwz" },
-    { selector: ".zOp0H9s6myIHE7tnkS5m" },
-    { selector: ".qx2q2w0DYin744m8sU7H" },
-    { selector: ".r3MRxhtDijiSmIPdwAxG" },
-    { selector: ".PhrrxnpQqpJQdqWtlyIj, div:has(> .esdT7NhwpvXK5y8x_AhA)" },
-    { selector: ".pK7Xdjf1GUBZLTBDFnlF" },
-    { selector: ".VvAoS6GSNFNNkXztQUOF" },
-    { selector: ".Gs2EwEu259e_Q_vcVyCx", blur: 10 },
-    { selector: ".X8VwVPlDFxPubWkbfRZ2" },
-    { selector: ".w_63eGohnNUi98P84l_b" },
-    { selector: ".cPCPoUfABWzF8MgTHeZv" },
-    { selector: ".tlJt8JO80alw0Nlw6iW9" },
-    { selector: ".suqvnFaPhz7I0S4ZaIqe" },
-    { selector: ".ZXbCSxeqhRFKY9tjH_Kd" },
-    { selector: ".J11WGNd9DCUb60Rvdc2A" },
-    { selector: ".e-10860-legacy-box--elevated" },
-    { selector: "._tooltip-animation_igq95_1" },
-    { selector: ".lWpOlKmFJB1FKmwsccav" },
-    { selector: ".YpbkD1KYiSUHMMIc3FEe" },
-    { selector: ".kfrC7VggzHlLjrTehQdA" }
+    {
+      // Top bar background layer (made transparent in user.css)
+      selector: ".main-topBar-background",
+      options: { borderRadius: 8 }
+    },
+    {
+      // Dropdown / panel container (made transparent in user.css)
+      selector: ".zddkQq3wlxEOg6aa",
+      options: { borderRadius: 20, glassBlur: "5px" }
+    },
+    {
+      selector: ".main-trackList-trackListHeader",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".Root__now-playing-bar",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-globalNav-searchInputContainer .main-topBar-searchBar",
+      options: { borderRadius: 17 }
+    },
+    {
+      selector: ".Root__globalNav .main-globalNav-navLink",
+      options: { borderRadius: 17 }
+    },
+    {
+      selector: ".NJh1B8rnlSUlK7sY",
+      options: { borderRadius: 20, glassBlur: "5px" }
+    },
+    {
+      selector: ".search-searchCategory-carouselButton",
+      options: { borderRadius: 12 }
+    },
+    {
+      selector: "[class*='-box--tinted']",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-entityHeader-container",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-actionBar-ActionBar",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-nowPlayingView-headerWrapper",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-nowPlayingView-section",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-nowPlayingView-trackInfo",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-contextMenu-tippy",
+      options: { borderRadius: 10 }
+    },
+    {
+      selector: ".PromotionButtonTooltip-module_tooltip-animation__cE-rt",
+      options: { borderRadius: 12 }
+    },
+    {
+      selector: ".iiX8td2tfVETS09_ button",
+      options: { borderRadius: 13 }
+    },
+    {
+      selector: ".gpBiAnJHb1gq46qV",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".view-homeShortcutsGrid-shortcut",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-home-filterChipsSection",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: "dialog",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-topBar-buddyFeed",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-userWidget-box",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-globalNav-historyButtons",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".EU1ylDKh7s2oMU0g",
+      options: { borderRadius: 12 }
+    },
+    {
+      selector: ".VwcQJ4Zsf0JKD3Ls",
+      options: { borderRadius: 12 }
+    },
+    {
+      selector: ".KQDsZX3kwwuAFpE8",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".KFAJvMWTSagxYXGC",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-trackList-trackListRow.q8suB2R_XkoUyIeZ",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-nowPlayingView-actionButton",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-playlistEditDetailsModal-container",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-playlistEditDetailsModal-imageDropDownButton",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-home-content section",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".os-scrollbar-handle",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".JDUQ8zTo6EUgHoYt",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".B9ji6YIpLSUHiyxx",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".gu0S9_98ZXIo5DaV",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".SUjhgyMvTou7TddO",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".ERRo1Br0ZQtJYVhz",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".LR7w41pC8ccVc11Q",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".VsYY0YB3c4lmhoDI",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-shelf-shelf",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".CO34wNPAbR8mpcdD",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".JthDv0xUCm8rLhu6",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".tlq9Tt69FX4bauLX",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".x-settings-section",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".fa_L1qIbh7QDDd_h",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".TguLwQ522LIEgpK_.IxVxBUbV5M5tGaEx",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".HOf9H18Ya0DkJ4_K",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-nowPlayingView-onTourItemGrid:hover",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".qm0mrbeno_z0mpoo",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".N3kf5S8O84aeaCZu",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".J8g7rZ2MDknxmiYP",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".Root__cinema-view",
+      options: { borderRadius: 20, glassBlur: "10px" }
+    },
+    {
+      selector: ".n5KI8mwa5o8qbn4b",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".vado7sbDrEsKhSmn",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-embedWidgetGenerator-container",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".e-10451-box--elevated",
+      options: { borderRadius: 15 }
+    },
+    {
+      selector: ".Wzl40f9FIUD91O2o",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".mcZzjuAJUvE9X4gX",
+      options: { borderRadius: 20, glassBlur: "10px", applyTo: "before" }
+    },
+    {
+      selector: ".Htdd9HRV28F07Dwl",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".p67WtOnm9lsRLOu2",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".JLkvt5ABTQYw_rG7",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".mKvcoJ_veYlcHwOz",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".tMcqYZ2om0nYbgrw",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".yZCluNwEsPD2zYyY",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".Hrce4GF4EEkPJdBI",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".EpfIE3glwAOGcNT6",
+      options: { borderRadius: 20 }
+    },
+    {
+      // Glass on a ::before layer behind the menu items (see user.css
+      // .liquify-glass--before), so the items stay crisp above the refraction.
+      selector: ".liquify-popup-surface",
+      options: { borderRadius: 20, glassBlur: "5px", applyTo: "before" }
+    },
+    {
+      // Popup panel — glass on a ::before layer (see user.css .liquify-glass--before).
+      selector: ".xamNkt5LX9o8aL1q",
+      options: { borderRadius: 20, glassBlur: "5px", applyTo: "before" }
+    },
+    {
+      selector: ".marketplace-header",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".marketplace-tabBar-active",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".Dropdown-menu",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: "#marketplace-readme",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".liquifySettingsPanel",
+      options: { borderRadius: 20, glassBlur: "5px" }
+    },
+    {
+      selector: ".liquifySelectMenu",
+      options: { borderRadius: 15 }
+    },
+    {
+      selector: ".liquifySectionNavScrollBtn",
+      options: { borderRadius: 12 }
+    },
+    {
+      // The toggle's knob is our glass lens (the colored liquid + goo morph come
+      // from settingsStyles.tsx). Glass goes on the knob itself — not the whole
+      // pill — so it doesn't nest behind the toggle's own backdrop. Small element:
+      // a gentle distortion and no chromatic aberration keep the refraction clean
+      // at ~26x24px. It only translates (and scales on press), so the displacement
+      // map stays valid without regeneration.
+      selector: ".liquid-toggle .indicator__liquid",
+      options: { borderRadius: 999, distortionScale: -14, chromaticAberration: false }
+    },
+    {
+      selector: "#liquify-next-song-card",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".main-card-card",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: "#liquify-settings-gear-btn",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".artist-artistDiscography-topBar.artist-artistDiscography-topBarScrolled",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".wJiY1vDfuci2a4db",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".oc3OomY6r9UoIEQ0",
+      options: { borderRadius: 20 }
+    },
+    {
+      selector: ".oReO3E1Df2odSFHX",
+      options: { borderRadius: 10 }
+    },
+    {
+      selector: ".fA6CNWFY1WQBCde9",
+      options: { borderRadius: 10 }
+    },
+    {
+      selector: ".main-trackCreditsModal-container",
+      options: { borderRadius: 10 }
+    },
+    {
+      selector: ".TGvpaalpJK0BKYYL",
+      options: { borderRadius: 10, glassBlur: "5px" }
+    },
+    {
+      selector: ".edvX5XPBIXITSQoH",
+      options: { borderRadius: 10 }
+    }
   ];
+  var PRECISE_TARGETS = [
+    { selector: ".main-trackList-trackListHeader", options: { borderRadius: 20 } },
+    { selector: ".main-topBar-background", options: { borderRadius: 0 } },
+    { selector: ".znOINyqAy7ivIGbQyrbt", options: { borderRadius: 20, glassBlur: "5px" } },
+    { selector: ".iGRaSZDa1r0m21aF6oZq", options: { borderRadius: 20 } },
+    { selector: ".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV", options: { borderRadius: 20 } },
+    { selector: ".main-nowPlayingView-trackInfo", options: { borderRadius: 20 } },
+    { selector: ".main-nowPlayingView-section", options: { borderRadius: 20 } },
+    { selector: ".main-entityHeader-container.gmKBgPCnX785KDicbdJu", options: { borderRadius: 20 } },
+    { selector: ".main-home-filterChipsSection", options: { borderRadius: 20 } },
+    { selector: ".view-homeShortcutsGrid-shortcut", options: { borderRadius: 20 } },
+    { selector: ".main-card-card", options: { borderRadius: 20 } },
+    { selector: ".Root__globalNav .DoxYADBBjYMvoYwl7QPg", options: { borderRadius: 50 } },
+    { selector: ".yfJeY2Xi99dPOe6fsIha", options: { borderRadius: 20 } },
+    { selector: ".main-entityHeader-container.main-entityHeader-containerNormal", options: { borderRadius: 20 } },
+    { selector: ".x-settings-section", options: { borderRadius: 20 } },
+    { selector: ".LR7w41pC8ccVc11Q", options: { borderRadius: 20 } },
+    { selector: ".ERRo1Br0ZQtJYVhz", options: { borderRadius: 20 } },
+    { selector: ".HOf9H18Ya0DkJ4_K", options: { borderRadius: 20 } },
+    { selector: ".main-entityHeader-imageContainerWrapper", options: { borderRadius: 20 } },
+    { selector: ".JDUQ8zTo6EUgHoYt", options: { borderRadius: 20 } },
+    { selector: ".main-globalNav-searchInputContainer .main-topBar-searchBar", options: { borderRadius: 17 } },
+    { selector: ".Root__globalNav .main-globalNav-navLink", options: { borderRadius: 17 } },
+    // Context menu / popup: glass on a ::before layer (see user.css .liquify-glass--before).
+    { selector: ".liquify-popup-surface", options: { borderRadius: 20, glassBlur: "5px", applyTo: "before" } },
+    { selector: ".xamNkt5LX9o8aL1q", options: { borderRadius: 20, glassBlur: "5px", applyTo: "before" } },
+    // Settings toggle knob — tiny, gentle distortion, no chromatic aberration.
+    { selector: ".liquid-toggle .indicator__liquid", options: { borderRadius: 999, distortionScale: -14, chromaticAberration: false } }
+  ];
+  var preciseSelectors = new Set(PRECISE_TARGETS.map((t) => t.selector));
+  var DARKENED = {
+    ".liquifySettingsPanel": 0.8,
+    ".liquifySelectMenu": 0.8
+  };
+  var BULK_TARGETS = GLASS_TARGETS.filter((t) => !preciseSelectors.has(t.selector)).map((t) => {
+    const gb = t.options?.glassBlur;
+    return {
+      selector: t.selector,
+      blur: gb ? parseInt(gb, 10) : void 0,
+      before: t.options?.applyTo === "before" ? true : void 0,
+      brightness: DARKENED[t.selector]
+    };
+  });
   function start() {
     installGlassDevtools();
-    applyGlass(GLASS_TARGETS);
+    watchGlassTargets(PRECISE_TARGETS);
+    applyBulkGlass(BULK_TARGETS);
     startBackground();
     startPopupBounce();
     startLiquifySettings();

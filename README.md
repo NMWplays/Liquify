@@ -9,8 +9,10 @@
 <!-- toc -->
 
 - [Introduction](#introduction)
+- [Installation](#installation)
 - [Theme screenshots](#theme-screenshots)
 - [Features](#features)
+- [Compatibility fixes](#compatibility-fixes)
 <!-- tocstop -->
 
 ## Introduction
@@ -19,7 +21,7 @@
 
 Liquify is inspired by [Glassify](https://github.com/sanoojes/spicetify-glassify) from [Sanoojes](https://github.com/sanoojes).
 
-If your transparent controls don’t look fully transparent — for example when zooming in on Spotify — you can easily change the width and height of them in the Glowify Settings to make them fully transparent again.
+If your transparent controls don’t look fully transparent — for example when zooming in on Spotify — you can easily change the width and height of them in the Liquify Settings to make them fully transparent again.
 
 If you like the theme, consider starring the repository on GitHub! ⭐
 
@@ -28,6 +30,19 @@ If you like the theme, consider starring the repository on GitHub! ⭐
 <a href="https://discord.gg/QRMnrgjhvq" target="_blank">
   <img src="discord-icon.png" alt="Discord-server-link" width="64" />
 </a>
+
+## Installation
+
+With Spicetify installed, place this folder in its `Themes` directory, then run:
+
+```powershell
+spicetify config current_theme Liquify-main
+spicetify apply
+```
+
+If you rename the folder, replace `Liquify-main` with its exact name. The root `theme.js`, `user.css` and `color.ini` are ready to use; no build step, Node.js or PowerShell helper script is required.
+
+Liquid Lyrics is a separate extension. This theme includes compatibility fixes for its sidebar card; the extension itself must be installed separately.
 
 ## Theme screenshots
 
@@ -65,10 +80,19 @@ If you like the theme, consider starring the repository on GitHub! ⭐
 - Modern, rounded UI
 - And much more!
 
+## Compatibility fixes
+
+This distribution includes fixes checked on Spotify **1.3.6.1912.g625421345c47** with Spicetify **2.45.3** on October 17, 2026. All changes are included directly in `theme.js` and `user.css`.
+
+- Restored transparent containers, artist page scrolling, home filters, rounded shortcut cards, sidebar cards and profile menus.
+- Restored the bottom player, expanded player, mini-player, cover effects and Liquid Lyrics mounting points.
+- Fixed equalizer and output-device panel colors, typography, settings import/export and visualizers.
+- Replaced version-dependent selectors where possible with component names and semantic attributes.
+
 ## Credits
 
 Created by NMW.
 
 ## License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the LICENSE file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE.txt](LICENSE.txt) for details.
