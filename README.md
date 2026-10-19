@@ -4,6 +4,12 @@
   <b>A modern, rounded and liquified theme for spicetify</b><br>
 </p>
 
+
+## ⚠️DISCLAIMER
+
+**I am not the original author, this is just a fork of the original version of the theme, with changes and features, as well as support, that are not in the [official theme](https://github.com/sanoojes/spicetify-glassify). Original project created by [NMWplays](https://github.com/NMWplays)**
+
+
 ## Contents
 
 <!-- toc -->
