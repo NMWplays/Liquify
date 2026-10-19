@@ -1,0 +1,4 @@
+@ffmpeg/ffmpeg 0.12.15 and @ffmpeg/core 0.12.10
+Source and build instructions: https://github.com/ffmpegwasm/ffmpeg.wasm
+FFmpeg and codec sources: https://github.com/ffmpegwasm/ffmpeg.wasm/tree/main/build
+Installed from npm with package-lock.json integrity verification.

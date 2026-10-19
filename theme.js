@@ -453,7 +453,9 @@
       this.opts = { ...DEFAULTS, ...options };
       this.filterId = `liquify-filter-${++instanceCounter}`;
       instances.add(this);
-      if (supportsSVGFilters()) {
+      // These content surfaces already use CSS blur. Do not allocate an unused
+      // SVG image document, filter chain and ResizeObserver for every card.
+      if (supportsSVGFilters() && !this.opts.nativeFilter) {
         this.buildFilter();
         this.applyStyles();
         this.updateDisplacementMap();
@@ -519,7 +521,9 @@
     ensureInstanceStyle() {
       if (this.styleEl) return;
       const decls = [];
-      if (supportsSVGFilters()) {
+      if (this.opts.nativeFilter) {
+        decls.push("--liquify-filter:blur(0px)");
+      } else if (supportsSVGFilters()) {
         const saturate = this.opts.saturation !== 1 ? ` saturate(${this.opts.saturation})` : "";
         decls.push(`--liquify-filter:url(#${this.filterId})${saturate}`);
       }
@@ -1685,6 +1689,24 @@
       this.active = active;
       this.el.classList.toggle("active", active);
       this.syncLoop();
+      if (!active) this.releaseLayers();
+    }
+    releaseLayers() {
+      ++this.token;
+      window.clearTimeout(this.swapTimer);
+      window.clearTimeout(this.resizeTimer);
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = null;
+      this.live.clear();
+      for (const { canvas, renderer } of this.layers) {
+        renderer.dispose();
+        renderer.gl.getExtension("WEBGL_lose_context")?.loseContext();
+        canvas.remove();
+        canvas.width = canvas.height = 1;
+      }
+      this.layers = [];
+      this.lastUrl = this.lastOptions = "";
+      this.useA = true;
     }
     /** Re-reads the settings and pushes them into both renderers. */
     applyOptions() {
@@ -1720,15 +1742,16 @@
       if (this.failed) return false;
       if (this.layers.length === 2) return true;
       try {
-        this.layers = [0, 1].map(() => {
+        for (let i = 0; i < 2; i++) {
           const canvas = document.createElement("canvas");
           canvas.className = "liquify-kawarp-canvas";
           this.el.appendChild(canvas);
-          return { canvas, renderer: new Kawarp(canvas, kawarpOptions()) };
-        });
+          this.layers.push({ canvas, renderer: new Kawarp(canvas, kawarpOptions()) });
+        }
       } catch (error) {
         console.warn("[Liquify] Kawarp unavailable, falling back to the static background.", error);
         this.failed = true;
+        this.releaseLayers();
         this.el.replaceChildren();
         this.layers = [];
         return false;
@@ -1822,6 +1845,18 @@
   var STORE = "images";
   var LIBRARY_SELECTED_KEY = "liquify-bg-library-id";
   var LEGACY_IMAGE_KEY = "liquify-bg-image";
+  var VIDEO_PAUSE_INACTIVE_KEY = "liquify-video-pause-inactive";
+  var VIDEO_PAUSE_MUSIC_KEY = "liquify-video-pause-with-music";
+  function readVideoPlaybackSettings() {
+    return {
+      inactive: localStorage.getItem(VIDEO_PAUSE_INACTIVE_KEY) !== "off",
+      music: localStorage.getItem(VIDEO_PAUSE_MUSIC_KEY) !== "off"
+    };
+  }
+  function setVideoPlaybackSetting(key, enabled) {
+    localStorage.setItem(key, enabled ? "on" : "off");
+    window.dispatchEvent(new Event("liquifyVideoPlaybackChange"));
+  }
   var dbPromise = null;
   function openDb() {
     if (dbPromise) return dbPromise;
@@ -1839,31 +1874,248 @@
   function tx(mode, run) {
     return openDb().then(
       (db) => new Promise((resolve, reject) => {
-        const request = run(db.transaction(STORE, mode).objectStore(STORE));
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        const transaction = db.transaction(STORE, mode);
+        const request = run(transaction.objectStore(STORE));
+        transaction.oncomplete = () => resolve(request.result);
+        transaction.onabort = () => reject(transaction.error || request.error || new Error("Storage transaction aborted"));
+        transaction.onerror = () => reject(transaction.error || request.error);
       })
     );
+  }
+  function backgroundMediaCopy() {
+    return getEffectiveLanguage() === "ru" ? {
+      library: "Библиотека фонов", add: "Добавить фото или видео", empty: "Добавьте фото или видео для фона.",
+      pauseInactive: "Останавливать видео, когда окно Spotify неактивно",
+      pauseMusic: "Останавливать видео, когда музыка на паузе",
+      pauseInactiveTip: "Видеофон замирает при переходе в другое окно и продолжается с того же места при возвращении. В свёрнутом окне он всегда приостановлен.",
+      pauseMusicTip: "Видеофон замирает вместе с музыкой и продолжается при воспроизведении. Если включены оба переключателя, нужны и активное окно, и играющая музыка.",
+      importing: "Добавление…", video: "Видео", hint: "Фото и MP4 / WebM. Неподдерживаемый MP4 автоматически преобразуется в WebM на этом компьютере.",
+      checking: "Проверка видео", loadingConverter: "Подготовка конвертера", converting: "Конвертация в WebM", saving: "Сохранение", cancel: "Отменить", cancelled: "Добавление отменено.",
+      converterMissing: "Не удалось загрузить локальный конвертер. Повторно примените тему с её папкой assets.",
+      conversionFailed: "Не удалось преобразовать MP4. Возможно, файл повреждён или слишком сложен для конвертера.",
+      conversionTooLarge: "Для встроенной конвертации выберите MP4 размером до 256 МБ или готовый WebM.",
+      conversionHint: "Конвертация: до 1920 × 1080, 30 кадров/с, без звука. Оригинальный файл сохраняется без изменений.",
+      invalid: "Видео не удалось прочитать. Выберите MP4 или WebM с поддерживаемым кодеком.",
+      unsupported: "Выберите изображение или видео MP4 / WebM.",
+      storage: "Не удалось сохранить файл. Возможно, недостаточно места в хранилище.",
+      playback: "Не удалось воспроизвести видеофон. Показан статичный фон.",
+      removeError: "Не удалось удалить фон.", loadError: "Не удалось открыть библиотеку фонов."
+    } : {
+      library: "Background Library", add: "Add photos or videos", empty: "Add a photo or video for your background.",
+      pauseInactive: "Pause video when Spotify is not the active window",
+      pauseMusic: "Pause video when music is paused",
+      pauseInactiveTip: "Freeze the video background when switching to another window; resume from the same position on return. Video is always paused while the window is hidden.",
+      pauseMusicTip: "Freeze the video background while music is paused. When both options are enabled, video resumes only while Spotify is active and music is playing.",
+      importing: "Importing…", video: "Video", hint: "Photos and MP4 / WebM. Unsupported MP4 files are automatically converted to WebM on this computer.",
+      checking: "Checking video", loadingConverter: "Preparing converter", converting: "Converting to WebM", saving: "Saving", cancel: "Cancel", cancelled: "Import cancelled.",
+      converterMissing: "Could not load the local converter. Reapply the theme with its assets folder.",
+      conversionFailed: "Could not convert this MP4. It may be damaged or too complex for the converter.",
+      conversionTooLarge: "For built-in conversion, choose an MP4 under 256 MB or an already converted WebM.",
+      conversionHint: "Conversion: up to 1920 × 1080, 30 fps, without audio. The original file is unchanged.",
+      invalid: "Cannot read this video. Choose an MP4 or WebM with a supported codec.",
+      unsupported: "Choose an image or an MP4 / WebM video.",
+      storage: "Could not save this file. Background storage may be full.",
+      playback: "Could not play the video background. Showing a still background.",
+      removeError: "Could not remove this background.", loadError: "Could not open the background library."
+    };
+  }
+  function notifyBackgroundError(message) {
+    console.warn("[Liquify background]", message);
+    Spicetify.showNotification?.(message, true);
+  }
+  function mediaKind(entry) {
+    return entry?.kind === "video" || entry?.blob?.type?.startsWith("video/") ? "video" : "image";
+  }
+  // Decode before committing: an accepted extension is not proof of codec support.
+  async function inspectBackgroundVideo(blob, signal) {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    const url = URL.createObjectURL(blob);
+    let timer;
+    let abort;
+    try {
+      await new Promise((resolve, reject) => {
+        abort = () => reject(new DOMException("Import cancelled", "AbortError"));
+        if (signal?.aborted) { abort(); return; }
+        signal?.addEventListener("abort", abort, { once: true });
+        const fail = () => reject(new Error(backgroundMediaCopy().invalid));
+        timer = setTimeout(fail, 15000);
+        video.onerror = fail;
+        video.onloadeddata = () => video.videoWidth && video.videoHeight ? resolve() : fail();
+        video.src = url;
+        video.load();
+      });
+      clearTimeout(timer);
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(1, 640 / video.videoWidth);
+      canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+      canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+      const poster = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+      if (!poster) throw new Error(backgroundMediaCopy().invalid);
+      return { poster, duration: Number.isFinite(video.duration) ? video.duration : null };
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      video.onloadeddata = video.onerror = null;
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(url);
+    }
+  }
+  var ffmpegLibraryPromise = null;
+  function loadBackgroundConverterLibrary() {
+    if (window.FFmpegWASM?.FFmpeg) return Promise.resolve();
+    if (ffmpegLibraryPromise) return ffmpegLibraryPromise;
+    ffmpegLibraryPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      const fail = () => {
+        clearTimeout(timer);
+        script.remove();
+        ffmpegLibraryPromise = null;
+        reject(new Error(backgroundMediaCopy().converterMissing));
+      };
+      const timer = setTimeout(fail, 20000);
+      script.src = new URL("/liquify-video/ffmpeg.js", location.origin).href;
+      script.onload = () => {
+        clearTimeout(timer);
+        if (window.FFmpegWASM?.FFmpeg) resolve(); else fail();
+      };
+      script.onerror = fail;
+      document.head.appendChild(script);
+    });
+    return ffmpegLibraryPromise;
+  }
+  async function convertBackgroundMp4(blob, signal, report) {
+    const copy = backgroundMediaCopy();
+    if (blob.size > 256 * 1024 * 1024) throw new Error(copy.conversionTooLarge);
+    let ffmpeg = null;
+    let watchdog;
+    let abort;
+    let timedOut = false;
+    const interruption = new Promise((_, reject) => {
+      abort = () => {
+        ffmpeg?.terminate();
+        reject(new DOMException("Import cancelled", "AbortError"));
+      };
+      signal?.addEventListener("abort", abort, { once: true });
+      watchdog = setTimeout(() => {
+        timedOut = true;
+        ffmpeg?.terminate();
+        reject(new Error(copy.conversionFailed));
+      }, 10 * 60 * 1000);
+    });
+    const step = (promise) => Promise.race([promise, interruption]);
+    try {
+      signal?.throwIfAborted();
+      report({ stage: "loadingConverter", percent: null });
+      await step(loadBackgroundConverterLibrary());
+      signal?.throwIfAborted();
+      ffmpeg = new window.FFmpegWASM.FFmpeg();
+      let lastPercent = -1;
+      ffmpeg.on("progress", ({ progress }) => {
+        const percent = Math.min(99, Math.max(0, Math.floor(progress * 100)));
+        if (Number.isFinite(percent) && percent !== lastPercent) {
+          lastPercent = percent;
+          report({ stage: "converting", percent });
+        }
+      });
+      const base = new URL("/liquify-video/", location.origin).href;
+      await step(ffmpeg.load({ coreURL: base + "ffmpeg-core.js", wasmURL: base + "ffmpeg-core.wasm" }));
+      signal?.throwIfAborted();
+      // WORKERFS reads the selected Blob without copying the entire input into WASM memory.
+      await step(ffmpeg.createDir("/input"));
+      const mounted = await step(ffmpeg.mount("WORKERFS", { blobs: [{ name: "source.mp4", data: blob }] }, "/input"));
+      if (!mounted) throw new Error(copy.conversionFailed);
+      report({ stage: "converting", percent: 0 });
+      const exitCode = await step(ffmpeg.exec([
+        "-i", "/input/source.mp4", "-map", "0:v:0", "-an", "-sn", "-dn",
+        "-vf", "scale=w='min(1920,iw)':h='min(1080,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,fps=30",
+        "-c:v", "libvpx", "-deadline", "realtime", "-cpu-used", "8",
+        "-b:v", "4M", "-crf", "10", "-pix_fmt", "yuv420p", "-threads", "1", "/output.webm"
+      ], 10 * 60 * 1000));
+      signal?.throwIfAborted();
+      if (exitCode !== 0) throw new Error(copy.conversionFailed);
+      const output = await step(ffmpeg.readFile("/output.webm"));
+      if (!(output instanceof Uint8Array) || !output.byteLength) throw new Error(copy.conversionFailed);
+      return new Blob([output], { type: "video/webm" });
+    } catch (error) {
+      if (signal?.aborted) throw new DOMException("Import cancelled", "AbortError");
+      console.warn("[Liquify video conversion]", timedOut ? "Timed out" : error);
+      throw new Error(error?.message === copy.converterMissing ? copy.converterMissing : copy.conversionFailed);
+    } finally {
+      clearTimeout(watchdog);
+      signal?.removeEventListener("abort", abort);
+      // Terminating releases input/output files, decoded frames, and WASM memory, including on cancel/error.
+      ffmpeg?.terminate();
+    }
   }
   async function listImages() {
     try {
       const all = await tx("readonly", (s2) => s2.getAll()) || [];
-      return all.sort((a, b2) => b2.added - a.added);
-    } catch {
+      // The grid needs posters, never the original video Blobs.
+      return all.map((entry) => ({
+        id: entry.id, name: entry.name, added: entry.added,
+        kind: mediaKind(entry), duration: entry.duration,
+        preview: mediaKind(entry) === "video" ? entry.poster : entry.blob
+      })).sort((a, b2) => b2.added - a.added);
+    } catch (error) {
+      notifyBackgroundError(backgroundMediaCopy().loadError);
       return [];
     }
   }
-  async function addImages(files) {
-    for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
-      const entry = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        name: file.name,
-        added: Date.now(),
-        blob: file
-      };
-      await tx("readwrite", (s2) => s2.put(entry));
+  async function addImages(files, { signal, onProgress = () => {} } = {}) {
+    const added = [];
+    const errors = [];
+    for (const [index, file] of files.entries()) {
+      if (signal?.aborted) break;
+      const report = (status) => onProgress({ ...status, name: file.name, index: index + 1, total: files.length });
+      try {
+        const isImage = file.type.startsWith("image/");
+        const extension = /\.(mp4|webm)$/i.exec(file.name)?.[1]?.toLowerCase();
+        const mime = file.type === "video/mp4" || file.type === "video/webm" ? file.type : extension ? `video/${extension}` : null;
+        if (!isImage && !mime) throw new Error(backgroundMediaCopy().unsupported);
+        let blob = !isImage && file.type !== mime ? file.slice(0, file.size, mime) : file;
+        let metadata = {};
+        let converted = false;
+        report({ stage: "checking", percent: null });
+        if (!isImage) {
+          try {
+            metadata = await inspectBackgroundVideo(blob, signal);
+          } catch (error) {
+            if (signal?.aborted || error.name === "AbortError" || mime !== "video/mp4") throw error;
+            blob = await convertBackgroundMp4(blob, signal, report);
+            report({ stage: "checking", percent: null });
+            metadata = await inspectBackgroundVideo(blob, signal);
+            converted = true;
+          }
+        }
+        signal?.throwIfAborted();
+        report({ stage: "saving", percent: null });
+        const entry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          name: converted ? file.name.replace(/\.mp4$/i, "") + ".webm" : file.name,
+          added: Date.now(),
+          kind: isImage ? "image" : "video",
+          blob,
+          ...(converted ? { originalName: file.name, convertedFrom: "video/mp4" } : {}),
+          ...metadata
+        };
+        try {
+          await tx("readwrite", (s2) => s2.put(entry));
+        } catch {
+          throw new Error(backgroundMediaCopy().storage);
+        }
+        added.push(entry.id);
+      } catch (error) {
+        if (signal?.aborted || error.name === "AbortError") break;
+        errors.push(`${file.name}: ${error.message || backgroundMediaCopy().invalid}`);
+      }
     }
+    return { added, errors, cancelled: Boolean(signal?.aborted) };
   }
   async function deleteImage(id) {
     await tx("readwrite", (s2) => s2.delete(id));
@@ -1874,14 +2126,23 @@
   }
   var currentUrl = null;
   var currentId = "";
+  var currentMedia = null;
+  var librarySelectionVersion = 0;
+  function getLibraryMedia() {
+    return currentMedia;
+  }
   function getLibraryUrl() {
-    return currentUrl;
+    // Existing image-only consumers (artist backgrounds and accents) use the poster.
+    return currentMedia?.kind === "video" ? currentMedia.posterUrl : currentUrl;
   }
   function revoke() {
     if (currentUrl && currentUrl.startsWith("blob:")) URL.revokeObjectURL(currentUrl);
+    if (currentMedia?.posterUrl) URL.revokeObjectURL(currentMedia.posterUrl);
     currentUrl = null;
+    currentMedia = null;
   }
   async function refreshSelected() {
+    const version = ++librarySelectionVersion;
     const id = localStorage.getItem(LIBRARY_SELECTED_KEY) || "";
     if (!id) {
       revoke();
@@ -1893,10 +2154,16 @@
     if (id === currentId && currentUrl) return;
     try {
       const entry = await tx("readonly", (s2) => s2.get(id));
+      if (version !== librarySelectionVersion) return;
       revoke();
       currentId = id;
       currentUrl = entry?.blob ? URL.createObjectURL(entry.blob) : null;
+      if (currentUrl) currentMedia = {
+        id, kind: mediaKind(entry), url: currentUrl,
+        posterUrl: entry.poster ? URL.createObjectURL(entry.poster) : null
+      };
     } catch {
+      if (version !== librarySelectionVersion) return;
       revoke();
       currentId = "";
     }
@@ -1908,6 +2175,117 @@
   }
   function ensureLibraryApplied() {
     void refreshSelected();
+  }
+
+  // Local video backgrounds share the still-background appearance controls.
+  function createVideoBackdrop(root) {
+    const el = document.createElement("video");
+    el.className = "liquify-video-bg";
+    el.muted = true;
+    el.defaultMuted = true;
+    el.autoplay = false;
+    el.loop = true;
+    el.playsInline = true;
+    el.preload = "auto";
+    el.disablePictureInPicture = true;
+    el.disableRemotePlayback = true;
+    el.setAttribute("aria-hidden", "true");
+    el.setAttribute("tabindex", "-1");
+    root.prepend(el);
+    let source = null;
+    let generation = 0;
+    let ready = false;
+    let timer = null;
+    let failure = null;
+    let disposed = false;
+    let player = null;
+    let playAttempt = null;
+    const shouldPlay = () => {
+      if (disposed || !source || !ready || document.hidden) return false;
+      const settings = readVideoPlaybackSettings();
+      if (settings.inactive && !document.hasFocus()) return false;
+      if (settings.music && !window.Spicetify?.Player?.isPlaying?.()) return false;
+      return true;
+    };
+    const syncPlayback = () => {
+      if (!shouldPlay()) {
+        el.pause();
+        return;
+      }
+      if (!el.paused || playAttempt) return;
+      const version = generation;
+      const attempt = playAttempt = {};
+      el.play().catch((error) => {
+        if (version === generation && error.name !== "AbortError" && shouldPlay()) failure?.();
+      }).finally(() => {
+        if (playAttempt !== attempt) return;
+        playAttempt = null;
+        // A quick pause/resume can abort a still-pending play request.
+        if (shouldPlay() && el.paused) syncPlayback();
+      });
+    };
+    document.addEventListener("visibilitychange", syncPlayback);
+    const playbackEvents = ["focus", "blur", "liquifyVideoPlaybackChange", "liquifyConfigApplied"];
+    for (const event of playbackEvents) window.addEventListener(event, syncPlayback);
+    waitFor(() => window.Spicetify?.Player?.addEventListener ? Spicetify.Player : null, 30000).then((available) => {
+      if (disposed || !available) return;
+      player = available;
+      player.addEventListener("onplaypause", syncPlayback);
+      player.addEventListener("songchange", syncPlayback);
+      syncPlayback();
+    });
+    const hide = () => {
+      generation++;
+      playAttempt = null;
+      source = null;
+      ready = false;
+      failure = null;
+      clearTimeout(timer);
+      el.onloadeddata = el.onerror = null;
+      el.classList.remove("active");
+      el.pause();
+      if (el.hasAttribute("src")) {
+        el.removeAttribute("src");
+        el.load();
+      }
+    };
+    return {
+      el,
+      hide,
+      show(url, onReady, onError) {
+        if (disposed) return;
+        if (source === url) { syncPlayback(); return; }
+        hide();
+        source = url;
+        const version = generation;
+        failure = () => {
+          if (version !== generation) return;
+          hide();
+          onError();
+        };
+        el.onerror = failure;
+        timer = setTimeout(failure, 15000);
+        el.onloadeddata = () => {
+          if (version !== generation || ready) return;
+          clearTimeout(timer);
+          ready = true;
+          el.classList.add("active");
+          onReady();
+          syncPlayback();
+        };
+        el.src = url;
+        el.load();
+      },
+      dispose() {
+        disposed = true;
+        hide();
+        document.removeEventListener("visibilitychange", syncPlayback);
+        for (const event of playbackEvents) window.removeEventListener(event, syncPlayback);
+        player?.removeEventListener("onplaypause", syncPlayback);
+        player?.removeEventListener("songchange", syncPlayback);
+        el.remove();
+      }
+    };
   }
 
   // src/background.ts
@@ -2150,6 +2528,8 @@
     layerA.classList.add("liquify-bg-layer", "layer-a");
     layerB.classList.add("liquify-bg-layer", "layer-b");
     root.prepend(layerA, layerB);
+    const videoBackdrop = createVideoBackdrop(root);
+    window.addEventListener("pagehide", () => videoBackdrop.dispose(), { once: true });
     const kawarp = new KawarpBackdrop();
     root.prepend(kawarp.el);
     applyKawarpAppearance();
@@ -2179,6 +2559,16 @@
     let useA = true;
     let lastAccentUrl = null;
     let lastRenderKey = null;
+    let failedVideoUrl = null;
+    let imageCleanupTimer = 0;
+    const releaseInactiveImages = () => {
+      clearTimeout(imageCleanupTimer);
+      imageCleanupTimer = setTimeout(() => {
+        for (const layer of [layerA, layerB, ...animatedTilesA, ...animatedTilesB]) {
+          if (!layer.classList.contains("active")) layer.style.backgroundImage = "";
+        }
+      }, CROSSFADE_MS + 80);
+    };
     const contextCoverCache = /* @__PURE__ */ new Map();
     let resolvingContextUri = null;
     function getContextUri() {
@@ -2237,9 +2627,31 @@
     function render(kind, image, url) {
       if (!image) return;
       const engine = getBgEngine();
-      const key = `${kind}|${engine}|${image}`;
+      const key = kind === "video" ? `video|${url}` : `${kind}|${engine}|${image}`;
       if (key === lastRenderKey) return;
       lastRenderKey = key;
+      releaseInactiveImages();
+      if (kind === "video") {
+        kawarp.setActive(false);
+        hideTiles();
+        // Keep a decoded poster behind the video while its first frame loads.
+        layerA.style.backgroundImage = image;
+        layerA.classList.add("active");
+        layerB.classList.remove("active");
+        useA = false;
+        videoBackdrop.show(url, () => {
+          layerA.classList.remove("active");
+          layerB.classList.remove("active");
+          releaseInactiveImages();
+        }, () => {
+          failedVideoUrl = url;
+          lastRenderKey = null;
+          notifyBackgroundError(backgroundMediaCopy().playback);
+          void updateBackgroundAndAccent();
+        });
+        return;
+      }
+      videoBackdrop.hide();
       if (kind === "animated" && engine === "kawarp" && url) {
         layerA.classList.remove("active");
         layerB.classList.remove("active");
@@ -2278,13 +2690,19 @@
     function resolveBackdrop() {
       const bgMode = localStorage.getItem("liquify-bg-mode") || "dynamic";
       const customImage = getLibraryUrl();
+      const customMedia = getLibraryMedia();
       const bgUrl = localStorage.getItem("liquify-bg-url");
       const customAnimated = localStorage.getItem("liquify-bg-custom-animated") === "on";
       const customKind = customAnimated ? "animated" : "static";
       const coverUrl = getCoverUrl();
       const from = (kind, url) => ({ kind, image: url ? cssImage(url) : null, url, sampleUrl: url });
       let result;
-      if (bgMode === "custom" && customImage) result = from(customKind, customImage);
+      if (bgMode === "custom" && customMedia?.kind === "video") {
+        const poster = customMedia.posterUrl || coverUrl;
+        const kind = failedVideoUrl === customMedia.url ? "static" : "video";
+        result = { kind, image: poster ? cssImage(poster) : EMPTY_BACKDROP, url: customMedia.url, sampleUrl: poster };
+      }
+      else if (bgMode === "custom" && customImage) result = from(customKind, customImage);
       else if (bgMode === "url" && bgUrl) {
         result = { kind: customKind, image: cssImage(bgUrl), url: bgUrl, sampleUrl: UNSAMPLEABLE };
       } else if (bgMode === "playlist") {
@@ -2293,10 +2711,11 @@
         result = from(customKind, isPlaylist ? playlistCover : playlistCover || coverUrl);
       } else if (bgMode === "animated") result = from("animated", coverUrl);
       else result = from("static", coverUrl);
+      if (bgMode !== "custom" || customMedia?.url !== failedVideoUrl) failedVideoUrl = null;
       if (result.kind === "animated" && getBgEngine() === "kawarp" && !kawarp.canRender(result.url)) {
         result = { ...result, kind: "static" };
       }
-      if (!result.image && lastRenderKey === null) {
+      if (!result.image && (lastRenderKey === null || lastRenderKey.startsWith("video|"))) {
         return { kind: "static", image: EMPTY_BACKDROP, url: null, sampleUrl: null };
       }
       return result;
@@ -9255,6 +9674,12 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
   }
   function BackgroundLibrary(props) {
     const [items, setItems] = React.useState([]);
+    const [importing, setImporting] = React.useState(false);
+    const [importErrors, setImportErrors] = React.useState([]);
+    const [importProgress, setImportProgress] = React.useState(null);
+    const importController = React.useRef(null);
+    React.useEffect(() => () => importController.current?.abort(), []);
+    const mediaCopy = backgroundMediaCopy();
     const [selected, setSelected] = React.useState(
       () => localStorage.getItem(LIBRARY_SELECTED_KEY) || ""
     );
@@ -9267,22 +9692,32 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
     const { closing, requestClose } = useMenuExit(props.open, (v2) => {
       if (!v2) props.onClose();
     });
-    const reload = React.useCallback(() => {
-      void listImages().then(setItems);
+    const visible = props.open || closing;
+    const visibleRef = React.useRef(visible);
+    visibleRef.current = visible;
+    const loadGeneration = React.useRef(0);
+    React.useEffect(() => () => {
+      visibleRef.current = false;
+      ++loadGeneration.current;
+    }, []);
+    const reload = React.useCallback(async () => {
+      if (!visibleRef.current) return;
+      const generation = ++loadGeneration.current;
+      const nextItems = await listImages();
+      if (visibleRef.current && generation === loadGeneration.current) setItems(nextItems);
     }, []);
     React.useEffect(() => {
-      if (props.open) reload();
-    }, [props.open, reload]);
-    const urls = React.useMemo(
-      () => items.map((item) => URL.createObjectURL(item.blob)),
-      [items]
-    );
-    React.useEffect(
-      () => () => {
-        for (const url of urls) URL.revokeObjectURL(url);
-      },
-      [urls]
-    );
+      if (visible) void reload();
+      else setItems([]);
+      // Ignore slow reads after closing/unmounting; they must not retain Blobs.
+      return () => { ++loadGeneration.current; };
+    }, [visible, reload]);
+    const [urls, setUrls] = React.useState([]);
+    React.useEffect(() => {
+      const nextUrls = visible ? items.map((item) => item.preview ? URL.createObjectURL(item.preview) : null) : [];
+      setUrls(nextUrls);
+      return () => { for (const url of nextUrls) if (url) URL.revokeObjectURL(url); };
+    }, [items, visible]);
     React.useEffect(() => {
       if (!props.open) return;
       const onKey = (ev) => {
@@ -9352,9 +9787,10 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
         {
           type: "button",
           className: "liquifyControlSurface liquifyActionBtn",
+          disabled: importing,
           onClick: () => fileRef.current?.click()
         },
-        props.labels.add
+        importing ? mediaCopy.importing : mediaCopy.add
       ), /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -9369,21 +9805,42 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
         {
           ref: fileRef,
           type: "file",
-          accept: "image/*",
+          accept: "image/*,video/mp4,video/webm,.mp4,.webm",
+          disabled: importing,
           multiple: true,
           style: { display: "none" },
           onChange: async (e) => {
             const input = e.target;
             const files = Array.from(input.files || []);
             if (!files.length) return;
-            await addImages(files);
-            input.value = "";
-            const next = await listImages();
-            setItems(next);
-            if (!localStorage.getItem(LIBRARY_SELECTED_KEY) && next[0]) choose(next[0].id);
+            setImporting(true);
+            setImportErrors([]);
+            setImportProgress(null);
+            const controller = new AbortController();
+            importController.current = controller;
+            try {
+              const result = await addImages(files, { signal: controller.signal, onProgress: setImportProgress });
+              setImportErrors(result.errors);
+              setImportProgress(result.cancelled ? { stage: "cancelled" } : null);
+              await reload();
+              if (!localStorage.getItem(LIBRARY_SELECTED_KEY) && result.added[0]) choose(result.added[0]);
+            } catch {
+              setImportErrors([mediaCopy.storage]);
+            } finally {
+              input.value = "";
+              setImporting(false);
+              importController.current = null;
+            }
           }
         }
-      )), /* @__PURE__ */ React.createElement("div", { className: "liquifyLibraryGrid", ref: gridRef, onScroll: () => setHover(null) }, items.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "liquifyLibraryEmpty" }, props.labels.empty), items.map((item, i2) => /* @__PURE__ */ React.createElement(
+      )), React.createElement("div", { className: "liquifyLibraryMediaHint" }, mediaCopy.hint),
+      importProgress && React.createElement("div", { className: "liquifyLibraryImportProgress", role: "status", "aria-live": "polite" },
+        React.createElement("div", { className: "liquifyLibraryImportLabel" },
+          `${importProgress.name ? `${importProgress.index}/${importProgress.total} · ${importProgress.name} — ` : ""}${mediaCopy[importProgress.stage] || ""}${Number.isFinite(importProgress.percent) ? ` ${importProgress.percent}%` : ""}`),
+        importing && React.createElement("progress", { max: 100, value: Number.isFinite(importProgress.percent) ? importProgress.percent : undefined, "aria-label": mediaCopy[importProgress.stage] }),
+        importing && React.createElement("button", { type: "button", className: "liquifyControlSurface liquifyActionBtn liquifyImportCancel", onClick: () => importController.current?.abort() }, mediaCopy.cancel),
+        (importProgress.stage === "converting" || importProgress.stage === "loadingConverter") && React.createElement("small", null, mediaCopy.conversionHint)),
+      importErrors.length > 0 && React.createElement("div", { className: "liquifyLibraryMediaStatus", role: "alert" }, importErrors.join("\n")), /* @__PURE__ */ React.createElement("div", { className: "liquifyLibraryGrid", ref: gridRef, onScroll: () => setHover(null) }, items.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "liquifyLibraryEmpty" }, mediaCopy.empty), items.map((item, i2) => /* @__PURE__ */ React.createElement(
         "div",
         {
           key: item.id,
@@ -9392,7 +9849,9 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
           title: item.name,
           onClick: () => choose(item.id)
         },
-        /* @__PURE__ */ React.createElement("img", { src: urls[i2], alt: item.name })
+        urls[i2] && /* @__PURE__ */ React.createElement("img", { src: urls[i2], alt: item.name }),
+        mediaKind(item) === "video" && React.createElement("span", { className: "liquifyLibraryVideoBadge" },
+          `${mediaCopy.video}${Number.isFinite(item.duration) ? ` · ${Math.floor(item.duration / 60)}:${String(Math.floor(item.duration % 60)).padStart(2, "0")}` : ""}`)
       ))))
     );
     const removeButton = hover && /* @__PURE__ */ React.createElement(
@@ -9406,9 +9865,13 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
           e.stopPropagation();
           const id = hover.id;
           setHover(null);
-          await deleteImage(id);
-          if (id === selected) setSelected(localStorage.getItem(LIBRARY_SELECTED_KEY) || "");
-          reload();
+          try {
+            await deleteImage(id);
+            if (id === selected) setSelected(localStorage.getItem(LIBRARY_SELECTED_KEY) || "");
+            reload();
+          } catch {
+            setImportErrors([mediaCopy.removeError]);
+          }
         }
       },
       /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true", fill: "none", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M5 5 19 19" }), /* @__PURE__ */ React.createElement("path", { d: "M19 5 5 19" }))
@@ -9658,6 +10121,7 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
         className: "liquid-toggle",
         "data-active": active ? "true" : "false",
         "aria-pressed": props.checked ? "true" : "false",
+        "aria-label": props.label,
         onPointerDown,
         onPointerMove,
         onPointerUp,
@@ -9935,6 +10399,8 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
     "liquify-glow-color",
     "liquify-bg-mode",
     "liquify-bg-custom-animated",
+    VIDEO_PAUSE_INACTIVE_KEY,
+    VIDEO_PAUSE_MUSIC_KEY,
     "liquify-bg-blur",
     "liquify-bg-brightness",
     "liquify-bg-url",
@@ -10247,6 +10713,20 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
     const [glowColor, setGlowColor] = React.useState(readLS("liquify-glow-color", "#1DB954"));
     const [bgMode, setBgMode] = React.useState(readLS("liquify-bg-mode", "dynamic"));
     const [bgCustomAnimated, setBgCustomAnimated] = React.useState(readLS("liquify-bg-custom-animated", "off"));
+    const [videoPlayback, setVideoPlayback] = React.useState(readVideoPlaybackSettings);
+    React.useEffect(() => {
+      const sync = () => setVideoPlayback(readVideoPlaybackSettings());
+      window.addEventListener("liquifyVideoPlaybackChange", sync);
+      return () => window.removeEventListener("liquifyVideoPlaybackChange", sync);
+    }, []);
+    const [libraryKind, setLibraryKind] = React.useState(() => getLibraryMedia()?.kind || "image");
+    React.useEffect(() => {
+      const sync = () => setLibraryKind(getLibraryMedia()?.kind || "image");
+      window.addEventListener("liquifyBackgroundChange", sync);
+      sync();
+      return () => window.removeEventListener("liquifyBackgroundChange", sync);
+    }, []);
+    const videoActive = bgMode === "custom" && libraryKind === "video";
     const [hiResCover, setHiResCoverState] = React.useState(() => isHiResCoverOn());
     const [kawarp, setKawarpState] = React.useState(() => {
       const initial = {};
@@ -10259,7 +10739,7 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
       setKawarpState((prev) => ({ ...prev, [key]: value }));
       setKawarpValue(key, value);
     };
-    const animatedActive = bgMode === "animated" || bgCustomAnimated === "on" && (bgMode === "custom" || bgMode === "url" || bgMode === "playlist");
+    const animatedActive = !videoActive && (bgMode === "animated" || bgCustomAnimated === "on" && (bgMode === "custom" || bgMode === "url" || bgMode === "playlist"));
     const [bgAppearance, setBgAppearance] = React.useState(readAllBackgroundAppearance);
     const [bgEngine, setBgEngineState] = React.useState(getBgEngine());
     const bgSurface = !animatedActive ? "static" : bgEngine === "tiles" ? "tiles" : "kawarp";
@@ -10534,6 +11014,8 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
       localStorage.removeItem("liquify-bg-url");
       localStorage.setItem("liquify-bg-custom-animated", "off");
       setBgCustomAnimated("off");
+      setVideoPlaybackSetting(VIDEO_PAUSE_INACTIVE_KEY, true);
+      setVideoPlaybackSetting(VIDEO_PAUSE_MUSIC_KEY, true);
       resetKawarpDefaults();
       setKawarpState({ ...KAWARP_DEFAULTS });
       resetBackgroundAppearance();
@@ -10816,7 +11298,7 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
         className: "liquifyControlSurface liquifyActionBtn",
         onClick: () => setLibraryOpen(true)
       },
-      t.openLibrary || "Image Library"
+      backgroundMediaCopy().library
     ), bgMode === "url" && /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -10840,7 +11322,15 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
           setHiResCover(checked);
         }
       }
-    )), (bgMode === "custom" || bgMode === "url" || bgMode === "playlist") && /* @__PURE__ */ React.createElement("div", { className: "liquifyRow" }, /* @__PURE__ */ React.createElement("div", { className: "liquifyLabel" }, t.animatedBackground || "Animated Background:", /* @__PURE__ */ React.createElement(HelpTip, { text: tips.animatedBackground })), /* @__PURE__ */ React.createElement(
+    )), bgMode === "custom" && React.createElement(React.Fragment, null,
+      ...[
+        { key: VIDEO_PAUSE_INACTIVE_KEY, value: videoPlayback.inactive, label: "pauseInactive", tip: "pauseInactiveTip" },
+        { key: VIDEO_PAUSE_MUSIC_KEY, value: videoPlayback.music, label: "pauseMusic", tip: "pauseMusicTip" }
+      ].map((option) => React.createElement("div", { className: "liquifyRow", key: option.key, "data-video-setting": option.key },
+        React.createElement("div", { className: "liquifyLabel" }, backgroundMediaCopy()[option.label],
+          React.createElement(HelpTip, { text: backgroundMediaCopy()[option.tip] })),
+        React.createElement(Toggle, { label: backgroundMediaCopy()[option.label], checked: option.value, onChange: (checked) => setVideoPlaybackSetting(option.key, checked) })))),
+    !videoActive && (bgMode === "custom" || bgMode === "url" || bgMode === "playlist") && /* @__PURE__ */ React.createElement("div", { className: "liquifyRow" }, /* @__PURE__ */ React.createElement("div", { className: "liquifyLabel" }, t.animatedBackground || "Animated Background:", /* @__PURE__ */ React.createElement(HelpTip, { text: tips.animatedBackground })), /* @__PURE__ */ React.createElement(
       Toggle,
       {
         checked: bgCustomAnimated === "on",
@@ -10878,9 +11368,9 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
         open: libraryOpen,
         onClose: () => setLibraryOpen(false),
         labels: {
-          title: t.imageLibrary || "Image Library",
-          add: t.addImages || "Add images",
-          empty: t.libraryEmpty || "No images yet. Add some to get started.",
+          title: backgroundMediaCopy().library,
+          add: backgroundMediaCopy().add,
+          empty: backgroundMediaCopy().empty,
           remove: t.removeImage || "Remove",
           close: t.close || "Close"
         }
@@ -11882,12 +12372,12 @@ ${eachTransport(" svg")}, ${eachTransport(" path")} { fill: currentColor !import
     { selector: ".znOINyqAy7ivIGbQyrbt", options: { borderRadius: 20, glassBlur: "5px" } },
     { selector: ".iGRaSZDa1r0m21aF6oZq", options: { borderRadius: 20 } },
     { selector: ".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV", options: { borderRadius: 20 } },
-    { selector: ".main-nowPlayingView-trackInfo", options: { borderRadius: 20 } },
-    { selector: ".main-nowPlayingView-section", options: { borderRadius: 20 } },
+    { selector: ".main-nowPlayingView-trackInfo", options: { borderRadius: 20, nativeFilter: true } },
+    { selector: ".main-nowPlayingView-section", options: { borderRadius: 20, nativeFilter: true } },
     { selector: ".main-entityHeader-container.gmKBgPCnX785KDicbdJu", options: { borderRadius: 20 } },
     { selector: ".main-home-filterChipsSection", options: { borderRadius: 20 } },
-    { selector: ".view-homeShortcutsGrid-shortcut", options: { borderRadius: 20 } },
-    { selector: ".main-card-card", options: { borderRadius: 20 } },
+    { selector: ".view-homeShortcutsGrid-shortcut", options: { borderRadius: 20, nativeFilter: true } },
+    { selector: ".main-card-card", options: { borderRadius: 20, nativeFilter: true } },
     { selector: ".Root__globalNav .DoxYADBBjYMvoYwl7QPg", options: { borderRadius: 50 } },
     { selector: ".yfJeY2Xi99dPOe6fsIha", options: { borderRadius: 20 } },
     { selector: ".main-entityHeader-container.main-entityHeader-containerNormal", options: { borderRadius: 20 } },

@@ -84,6 +84,67 @@
   opacity: 1;
 }
 
+/* Local video uses the same blur and brightness settings as still backgrounds. */
+.liquify-video-bg {
+  position: fixed;
+  top: calc(-1 * var(--liquify-bg-blur, 7px));
+  left: calc(-1 * var(--liquify-bg-blur, 7px));
+  width: calc(100% + 2 * var(--liquify-bg-blur, 7px));
+  height: calc(100% + 2 * var(--liquify-bg-blur, 7px));
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(var(--liquify-bg-blur, 7px)) brightness(var(--liquify-bg-brightness, 45%));
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.liquify-video-bg.active {
+  opacity: 1;
+}
+
+.liquifyLibraryMediaHint,
+.liquifyLibraryMediaStatus {
+  padding: 0 20px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.liquifyLibraryMediaHint { opacity: 0.75; }
+.liquifyLibraryMediaStatus {
+  color: #ffb4b4;
+  white-space: pre-line;
+  max-height: 120px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.liquifyLibraryVideoBadge {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.liquifyLibraryImportProgress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 14px 14px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.liquifyLibraryImportLabel { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.liquifyLibraryImportProgress progress { width: 100%; height: 6px; accent-color: var(--accent-color); }
+.liquifyLibraryImportProgress small { grid-column: 1 / -1; opacity: 0.75; }
+.liquifyLibrary button:disabled { opacity: 0.55; cursor: wait; }
+
 /* Animated background — @kawarp/core's WebGL domain warp. The two canvases are
    crossfaded by theme.js on a track change; the blur, warp, speed, saturation
    and scale live inside the renderer, so only brightness, contrast and opacity
@@ -2829,4 +2890,24 @@ p[class*="-text"].encore-text-body-small.encore-internal-color-text-base {
 @media (prefers-reduced-motion: reduce) {
   .view-homeShortcutsGrid-shortcut { transition: none !important; }
   .view-homeShortcutsGrid-shortcut:hover { transform: none !important; }
+}
+
+/* Chromium's nested SVG backdrop displacement can produce RGB stripes and
+   repeated artwork inside content surfaces, especially over moving video.
+   Keep each surface's configured blur, brightness, tint, borders and shadows,
+   but use an identity CSS filter in place of SVG refraction on these surfaces.
+   Control lenses keep their existing refraction; layout/glass toggles still work. */
+.liquify-compatible :is(
+  .view-homeShortcutsGrid-shortcut,
+  .main-card-card,
+  .main-home-content section,
+  .Root__now-playing-bar,
+  .main-nowPlayingView-section,
+  .main-nowPlayingView-trackInfo,
+  .liquify-expanded-card,
+  .liquifyLibrary,
+  .liquifySettingsPanel
+) {
+  --liquify-filter: blur(0px) !important;
+  --glass-filter: blur(0px) !important;
 }
