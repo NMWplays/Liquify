@@ -2911,3 +2911,280 @@ p[class*="-text"].encore-text-body-small.encore-internal-color-text-base {
   --liquify-filter: blur(0px) !important;
   --glass-filter: blur(0px) !important;
 }
+
+/* Current Spotify controls: the original Liquify rims and rounded surfaces,
+   scoped to semantic containers instead of Spotify's changing hashed classes. */
+:root {
+  --liquify-control-tint: rgba(255, 255, 255, .06);
+  --liquify-control-hover: rgba(255, 255, 255, .13);
+}
+
+#Desktop_LeftSidebar_Id .main-yourLibraryX-header button,
+#Desktop_LeftSidebar_Id [role="search"] > button,
+.main-globalNav-historyButtons,
+[data-npv-root] .main-nowPlayingView-headerWrapper button {
+  background-color: var(--liquify-control-tint) !important;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--liquify-shadow);
+  transition: background-color .18s ease, box-shadow .18s ease;
+}
+
+/* The library title is also the collapse control; keep it visually a heading. */
+#Desktop_LeftSidebar_Id .main-yourLibraryX-header button:has(h1) {
+  background: transparent !important;
+  box-shadow: none;
+}
+
+#Desktop_LeftSidebar_Id .main-yourLibraryX-header button:hover,
+#Desktop_LeftSidebar_Id [role="search"] > button:hover,
+.main-globalNav-historyButtons button:not(:disabled):hover,
+[data-npv-root] .main-nowPlayingView-headerWrapper button:hover {
+  background-color: var(--liquify-control-hover) !important;
+}
+
+.main-globalNav-historyButtons {
+  display: flex;
+  align-items: center;
+  border-radius: 17px;
+  padding: 4px;
+  gap: 2px;
+}
+.main-globalNav-historyButtons button { border-radius: 12px; }
+
+/* A blurred search form creates a stacking context; lift the whole nav while
+   its popup is open so page headers cannot paint over the search history. */
+#global-nav-bar:has(#search-dropdown) { z-index: 100; }
+/* A nested backdrop root would prevent the popup from blurring the page. */
+.liquify-search:has(#search-dropdown) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+#search-dropdown {
+  background: rgba(23, 25, 30, .72) !important;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: var(--liquify-shadow), 0 12px 40px #0006;
+  backdrop-filter: blur(var(--liquify-backdrop-blur, 32px)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--liquify-backdrop-blur, 32px)) saturate(1.25);
+  overflow: hidden;
+  color: var(--spice-text);
+}
+#search-dropdown > [data-overlayscrollbars] {
+  background: transparent !important;
+  box-shadow: none;
+}
+#search-dropdown [data-encore-id="listRow"] {
+  border-radius: 12px;
+  margin-block: 4px;
+  transition: background-color .18s ease, box-shadow .18s ease;
+}
+#search-dropdown [data-encore-id="listRow"]:is(:hover, :focus-within, [aria-selected="true"]) {
+  background-color: var(--liquify-control-hover) !important;
+  box-shadow: var(--liquify-shadow);
+}
+#search-dropdown [data-subelement-type="remove-item-button"] {
+  border-radius: 10px;
+  background: var(--liquify-control-tint);
+  box-shadow: var(--liquify-shadow);
+}
+
+/* Marketplace owns its tabs and click handlers. Restore only its host above,
+   and let its existing More menu handle narrow windows. */
+[data-testid="topbar-content-wrapper"]:has(.marketplace-tabBar) {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  pointer-events: auto;
+}
+.marketplace-tabBar {
+  width: 100%;
+  min-width: 0;
+}
+.marketplace-tabBar-headerItemLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  background: var(--liquify-control-tint);
+  box-shadow: var(--liquify-shadow);
+}
+.marketplace-tabBar-headerItemLink:hover,
+.marketplace-tabBar-active {
+  background: var(--liquify-control-hover) !important;
+  color: var(--spice-text);
+}
+.marketplace-tabBar-headerItemLink:focus-visible {
+  outline: 2px solid var(--accent-color, #fff);
+  outline-offset: 2px;
+}
+/* A compact icon accompanies each category without replacing its label. */
+.marketplace-tabBar-headerItem[data-tab] .marketplace-tabBar-headerItemLink::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: currentColor;
+  mask: var(--liquify-tab-icon) center / contain no-repeat;
+}
+.marketplace-tabBar-headerItem[data-tab="Extensions"] { --liquify-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linejoin='round' d='M9 3h6v5h5v6h-5v7H9v-7H4V8h5z'/%3E%3C/svg%3E"); }
+.marketplace-tabBar-headerItem[data-tab="Themes"] { --liquify-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linejoin='round' d='m3 6 5-3 4 3 4-3 5 3-3 5-2-1v11H8V10l-2 1z'/%3E%3C/svg%3E"); }
+.marketplace-tabBar-headerItem[data-tab="Snippets"] { --liquify-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' d='m7 6-6 6 6 6m10-12 6 6-6 6M14 3l-4 18'/%3E%3C/svg%3E"); }
+.marketplace-tabBar-headerItem[data-tab="Apps"] { --liquify-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' d='M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z'/%3E%3C/svg%3E"); }
+.marketplace-tabBar-headerItem[data-tab="Installed"] { --liquify-tab-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5'/%3E%3C/svg%3E"); }
+.marketplace-header {
+  box-sizing: border-box;
+  background: rgba(23, 25, 30, .4) !important;
+  --liquify-filter: blur(0px) !important;
+  --glass-filter: blur(0px) !important;
+}
+
+[data-testid="settings-page"] .x-settings-section {
+  background: var(--liquify-surface-tint, rgba(255, 255, 255, .035)) !important;
+  --liquify-filter: blur(0px) !important;
+  --glass-filter: blur(0px) !important;
+  margin-block-end: 16px;
+}
+[data-testid="settings-page"] .x-settings-section > hr { display: none; }
+[data-testid="settings-page"] select,
+[data-testid="settings-page"] button:not([role="switch"]),
+[data-testid="settings-page"] [role="combobox"] {
+  background-color: var(--liquify-control-tint) !important;
+  color: var(--spice-text);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: var(--liquify-shadow);
+  transition: background-color .18s ease, box-shadow .18s ease;
+}
+[data-testid="settings-page"] select {
+  min-height: 36px;
+  max-width: 100%;
+  padding-inline-start: 12px;
+  /* Selection and keyboard handling stay native. The picker is themed below. */
+}
+[data-testid="settings-page"] :is(select, button, [role="combobox"]):not(:disabled):hover {
+  background-color: var(--liquify-control-hover) !important;
+}
+[data-testid="settings-page"] :is(select, button, [role="combobox"]):focus-visible,
+#Desktop_LeftSidebar_Id .main-yourLibraryX-header button:focus-visible {
+  outline: 2px solid var(--accent-color, #fff);
+  outline-offset: 3px;
+}
+[data-testid="settings-page"] :is(select, button):disabled { opacity: .45; cursor: not-allowed; }
+[data-testid="settings-page"] input[type="checkbox"] + span {
+  background: rgba(255, 255, 255, .12);
+  box-shadow: var(--liquify-shadow);
+}
+[data-testid="settings-page"] input[type="checkbox"]:checked + span {
+  background: var(--accent-color, #1db954);
+}
+[data-testid="settings-page"] input[type="checkbox"] + span > span {
+  background: #fff;
+  box-shadow: 0 1px 4px #0004;
+}
+[data-testid="settings-page"] input[type="checkbox"]:focus-visible + span {
+  outline: 2px solid var(--accent-color, #fff);
+  outline-offset: 3px;
+}
+[data-testid="settings-page"] input[type="checkbox"]:disabled + span { opacity: .45; }
+
+@media (prefers-reduced-motion: reduce) {
+  #search-dropdown [data-encore-id="listRow"],
+  [data-testid="settings-page"] :is(select, button, [role="combobox"]) { transition: none; }
+}
+
+/* Chromium 135+ exposes the real select popup in the top layer. Keep Spotify's
+   select/options, labels, values and change handlers; only opt into styling.
+   Older clients retain the ordinary native picker through feature detection. */
+@supports (appearance: base-select) and selector(::picker(select)) {
+  [data-testid="settings-page"] select:not([multiple]):not([size]),
+  [data-testid="settings-page"] select:not([multiple]):not([size])::picker(select) {
+    appearance: base-select;
+  }
+
+  [data-testid="settings-page"] select:not([multiple]):not([size]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-inline-size: 136px;
+    padding: 8px 12px;
+    background-image: none !important;
+    cursor: pointer;
+  }
+
+  [data-testid="settings-page"] select::picker-icon {
+    content: "";
+    flex: 0 0 7px;
+    inline-size: 7px;
+    block-size: 7px;
+    border-inline-end: 2px solid currentColor;
+    border-block-end: 2px solid currentColor;
+    margin-block-start: -4px;
+    rotate: 45deg;
+    transition: rotate .18s ease;
+  }
+  [data-testid="settings-page"] select:open::picker-icon {
+    rotate: 225deg;
+    margin-block-start: 4px;
+  }
+
+  [data-testid="settings-page"] select::picker(select) {
+    box-sizing: border-box;
+    min-inline-size: anchor-size(self-inline);
+    max-inline-size: min(440px, calc(100dvw - 24px));
+    max-block-size: min(360px, calc(100dvh - 24px));
+    margin-block: 6px;
+    padding: 6px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #ffffff55 transparent;
+    border: 1px solid #ffffff26;
+    border-radius: 15px;
+    background: rgba(23, 25, 30, .8);
+    color: var(--spice-text, #fff);
+    box-shadow: var(--liquify-shadow), 0 12px 32px #0006;
+    backdrop-filter: blur(var(--liquify-backdrop-blur, 32px)) saturate(1.25);
+    -webkit-backdrop-filter: blur(var(--liquify-backdrop-blur, 32px)) saturate(1.25);
+    font: inherit;
+  }
+
+  [data-testid="settings-page"] select:not([multiple]):not([size]) option {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-block-size: 36px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  [data-testid="settings-page"] select option:not(:disabled):is(:hover, :focus-visible) {
+    background: rgba(255, 255, 255, .14);
+    box-shadow: var(--liquify-shadow);
+    outline: none;
+  }
+  [data-testid="settings-page"] select option:checked {
+    background: rgba(255, 255, 255, .09);
+    font-weight: 600;
+  }
+  [data-testid="settings-page"] select option::checkmark {
+    order: 1;
+    margin-inline-start: auto;
+    color: var(--accent-color, #fff);
+  }
+  [data-testid="settings-page"] select option:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-testid="settings-page"] select::picker-icon { transition: none; }
+  }
+}

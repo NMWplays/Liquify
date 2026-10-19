@@ -15,6 +15,14 @@
     ['#main-view', 'Root__main-view'],
     ['#Desktop_LeftSidebar_Id', 'Root__nav-bar'],
     ['#global-nav-bar', 'Root__globalNav'],
+    // Stable hooks for the current desktop shell and Marketplace's tab portal.
+    ['[data-testid="topbar-content-wrapper"]', 'main-topBar-topbarContentWrapper'],
+    ['.main-globalNav-historyButtonsWrapper > div:has(> button + button)', 'main-globalNav-historyButtons'],
+    ['#Desktop_LeftSidebar_Id .YourLibraryX', 'main-yourLibraryX-libraryContainer'],
+    ['#Desktop_LeftSidebar_Id [role="search"] > button', 'x-filterBox-expandButton'],
+    ['[data-testid="settings-page"]', 'x-settings-container'],
+    ['[data-testid="settings-page"] > div:has(h2):has([data-settings-row])', 'x-settings-section'],
+    ['[data-testid="settings-page"] select', 'main-dropDown-dropDown'],
     ['[data-testid="CoverSlotCollapsed__container"]', 'main-coverSlotCollapsed-container'],
     ['[data-testid="player-controls"]', 'player-controls'],
     ['[data-testid="CoverSlotCollapsed__container"] [data-testid="cover-art-button"]', 'main-nowPlayingWidget-coverArtContainer'],
@@ -142,7 +150,7 @@
       const style = getComputedStyle(el);
       if (style.backgroundImage === 'none' && style.backgroundColor.startsWith('rgb(')) add(el, 'liquify-card-body');
     });
-    document.documentElement.classList.add('liquify-compatible');
+    add(document.documentElement, 'liquify-compatible');
     window.liquifyCompatibility.lyrics?.();
   }
   function schedule() {
@@ -155,10 +163,12 @@
       (record.type === 'attributes' && !record.target.closest('#liquify-filter-host, #liquify-bulk-filter-host')))) schedule();
   });
   function start() {
+    // Spotify can replace <body> while its shell boots. Observe the persistent
+    // document root so hooks also reach routes mounted after that replacement.
+    observer.observe(document.documentElement, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id', 'data-testid', 'src']});
     reconcile();
-    observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id', 'data-testid', 'src']});
   }
-  window.liquifyCompatibility = {version: '2026.10.17.3', refresh: reconcile, syncSettings, get scans() { return scans; }};
+  window.liquifyCompatibility = {version: '2026.10.19.1', refresh: reconcile, syncSettings, get scans() { return scans; }};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
   else start();
 })();
