@@ -1,0 +1,19 @@
+{
+  "type": "theme",
+  "name": "Liquify",
+  "description": "A modern, rounded and liquified liquid glass theme for SpotiKit.",
+  "branch": "spotikit",
+  "preview": "preview.png",
+  "readme": "README.md",
+  "authors": [
+    {
+      "name": "NMWplays",
+      "url": "https://github.com/NMWplays"
+    }
+  ],
+  "tags": ["dark", "rounded", "liquified", "glass"],
+  "spotify": "1.3.6",
+  "style": "theme.css",
+  "main": "theme.js",
+  "windowControls": "custom"
+}

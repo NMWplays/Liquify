@@ -1,0 +1,20 @@
+{
+  "name": "liquify",
+  "version": "0.1.0",
+  "description": "Liquify – a liquid glass theme for SpotiKit",
+  "private": true,
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build-theme.mjs",
+    "watch": "node scripts/build-theme.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "deploy": "npm run build && node scripts/deploy.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@kawarp/core": "^1.2.0",
+    "react-colorful": "^5.7.0"
+  }
+}
