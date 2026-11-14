@@ -15,14 +15,13 @@ function applyCss() {
   const themed = readLS(THEMED_LYRICS_KEY, "on") === "on";
   const size = readNum(LYRICS_FONT_SIZE_KEY, LYRICS_FONT_SIZE_DEFAULT);
   const margin = readNum(LYRICS_MARGIN_KEY, LYRICS_MARGIN_DEFAULT);
-  // Animated, not transitioned: Spotify remounts the lines. Page only, the sidebar card lagged.
   const ease = "0.4s cubic-bezier(0.2, 0.8, 0.2, 1)";
   const css = themed
     ? `:root ${ACTIVE_LINE} { font-size: ${size}%; }\n` +
-      `:root ${LINES_ROOT} ${ACTIVE_LINE} { animation: liquify-lyric-grow ${ease}; }\n` +
-      `:root ${LINES_ROOT} ${LINE}--past:has(+ ${ACTIVE_LINE}) { animation: liquify-lyric-shrink ${ease}; }\n` +
-      `@keyframes liquify-lyric-grow { from { font-size: 100%; } to { font-size: ${size}%; } }\n` +
-      `@keyframes liquify-lyric-shrink { from { font-size: ${size}%; } to { font-size: 100%; } }\n` +
+      `:root ${LINES_ROOT} ${ACTIVE_LINE} { transform-origin: center; animation: liquify-lyric-grow ${ease}; }\n` +
+      `:root ${LINES_ROOT} ${LINE}--past:has(+ ${ACTIVE_LINE}) { transform-origin: center; animation: liquify-lyric-shrink ${ease}; }\n` +
+      `@keyframes liquify-lyric-grow { from { transform: scale(${(100 / size).toFixed(3)}); } to { transform: none; } }\n` +
+      `@keyframes liquify-lyric-shrink { from { transform: scale(${(size / 100).toFixed(3)}); } to { transform: none; } }\n` +
       `${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }`
     : "";
   updateStyle("liquify-themed-lyrics", css);

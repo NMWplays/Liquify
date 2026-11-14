@@ -28,6 +28,7 @@ import { isGlassEnabled, setGlassEnabled } from '../../glassSurface';
 import { applyActionBarBox } from '../features/actionBarBox';
 import { applyCompactPlayer } from '../features/compactPlayer';
 import { PLAYER_ICONS_KEY, setPlayerControlIcons } from '../features/playerControlIcons';
+import { PLAYBAR_EQ_KEY, setPlaybarEq } from '../features/playbarVisualizer';
 import { BACKDROP_BLUR_DEFAULT, BACKDROP_BLUR_KEY, GLASS_BLUR_DEFAULT, GLASS_BLUR_KEY, setBackdropBlur, setGlassBlur } from '../features/glassBlur';
 import { LAYOUT_RADIUS_DEFAULTS, MAIN_RADIUS_KEY, NAV_RADIUS_KEY, RIGHT_RADIUS_KEY, setMainRadius, setNavRadius, setRightRadius } from '../features/layoutRadius';
 import {
@@ -49,6 +50,7 @@ import {
 import {
   ensureProgressBarRadiusApplied, PROGRESS_BAR_RADIUS_DEFAULT, PROGRESS_BAR_RADIUS_KEY, setProgressBarRadius,
 } from '../features/progressBarRadius';
+import { LYRICS_CARD_HEIGHT_DEFAULT, LYRICS_CARD_HEIGHT_KEY, LYRICS_CARD_HEIGHT_MAX, LYRICS_CARD_HEIGHT_MIN, LYRICS_CARD_SHOW_KEY, LyricsCardHeightMode, getLyricsCardHeightMode, setLyricsCardHeight, setLyricsCardHeightMode, setLyricsCardShown } from '../features/lyricsCard';
 import { LYRICS_FONT_SIZE_DEFAULT, LYRICS_FONT_SIZE_KEY, LYRICS_MARGIN_DEFAULT, LYRICS_MARGIN_KEY, THEMED_LYRICS_KEY, setLyricsFontSize, setLyricsMargin, setThemedLyrics } from '../features/themedLyrics';
 import { applyTransparentPlayer } from '../features/transparentPlayer';
 import { WINDOW_CONTROLS_KEY, applyWindowControls } from '../features/windowControls';
@@ -67,6 +69,9 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
   const [themedLyrics, setThemedLyricsState] = React.useState(readLS(THEMED_LYRICS_KEY, "on"));
   const [lyricsFontSize, setLyricsFontSizeState] = React.useState(readNum(LYRICS_FONT_SIZE_KEY, LYRICS_FONT_SIZE_DEFAULT));
   const [lyricsMargin, setLyricsMarginState] = React.useState(readNum(LYRICS_MARGIN_KEY, LYRICS_MARGIN_DEFAULT));
+  const [lyricsCard, setLyricsCardState] = React.useState(readLS(LYRICS_CARD_SHOW_KEY, "on"));
+  const [lyricsCardMode, setLyricsCardModeState] = React.useState(getLyricsCardHeightMode() as string);
+  const [lyricsCardHeight, setLyricsCardHeightState] = React.useState(readNum(LYRICS_CARD_HEIGHT_KEY, LYRICS_CARD_HEIGHT_DEFAULT));
     const applyLyricsMode = (mode: string) => {
       setLyricsMode(mode);
       localStorage.setItem("liquify-lyrics-mode", mode);
@@ -332,6 +337,7 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
   const [connectBar, setConnectBar] = React.useState(readLS(CONNECT_BAR_KEY, "show"));
   const [compactPlayer, setCompactPlayer] = React.useState(readLS("liquify-compact-player", "off"));
   const [playerIcons, setPlayerIcons] = React.useState(readLS(PLAYER_ICONS_KEY, "on"));
+  const [playbarEq, setPlaybarEqState] = React.useState(readLS(PLAYBAR_EQ_KEY, "off"));
   const [progressBarHeight, setProgressBarHeightState] = React.useState(readNum(PROGRESS_BAR_HEIGHT_KEY, PROGRESS_BAR_HEIGHT_DEFAULT));
   const [progressBarRadius, setProgressBarRadiusState] = React.useState(readNum(PROGRESS_BAR_RADIUS_KEY, PROGRESS_BAR_RADIUS_DEFAULT));
   const [progressBarCompat, setProgressBarCompatState] = React.useState(readLS(PROGRESS_BAR_COMPAT_KEY, "off") === "on");
@@ -659,6 +665,9 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
     setPlayerIcons("on");
     setPlayerControlIcons("on");
 
+    setPlaybarEqState("off");
+    setPlaybarEq("off");
+
     localStorage.setItem(CCA_ENABLED_KEY, CCA_DEFAULTS.enabled);
     localStorage.setItem(CCA_WIDTH_KEY, String(CCA_DEFAULTS.width));
     localStorage.setItem(CCA_HEIGHT_KEY, String(CCA_DEFAULTS.height));
@@ -716,6 +725,12 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
     setLyricsFontSize(LYRICS_FONT_SIZE_DEFAULT);
     setLyricsMarginState(LYRICS_MARGIN_DEFAULT);
     setLyricsMargin(LYRICS_MARGIN_DEFAULT);
+    setLyricsCardState("on");
+    setLyricsCardShown(true);
+    setLyricsCardModeState("fit");
+    setLyricsCardHeightMode("fit");
+    setLyricsCardHeightState(LYRICS_CARD_HEIGHT_DEFAULT);
+    setLyricsCardHeight(LYRICS_CARD_HEIGHT_DEFAULT);
 
     localStorage.setItem(POPUP_BOUNCE_KEY, "on");
     setPopupBounceMode("on");
@@ -1473,6 +1488,20 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
             />
           </div>
         </SubSection>
+
+        <SubSection title={sub.visualizer || "Visualizer"}>
+          <div className="liquifyRow">
+            <div className="liquifyLabel">{(t.playbarEq) || "Playbar Equalizer:"}<HelpTip text={tips.playbarEq} /></div>
+            <Toggle
+              checked={playbarEq === "on"}
+              onChange={(checked) => {
+                const v = checked ? "on" : "off";
+                setPlaybarEqState(v);
+                setPlaybarEq(v);
+              }}
+            />
+          </div>
+        </SubSection>
       </Section>
 
       <Section id="liquify-sec-nextSongCard" title={titles.nextSongCard || "Next Song Card"}>
@@ -1686,6 +1715,44 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
             <div className="liquifyRow">
               <div className="liquifyLabel">{t.lyricsMargin || "Lyrics Margin:"}</div>
               <Stepper value={lyricsMargin} min={0} max={120} onChange={(v) => { setLyricsMarginState(v); setLyricsMargin(v); }} />
+            </div>
+          )}
+        </SubSection>
+        <SubSection title={sub.lyricsCard || "Lyrics Card"}>
+          <div className="liquifyRow">
+            <div className="liquifyLabel">{t.lyricsCard || "Show Lyrics Card:"}<HelpTip text={tips.lyricsCard} /></div>
+            <Toggle
+              checked={lyricsCard === "on"}
+              onChange={(checked) => {
+                setLyricsCardState(checked ? "on" : "off");
+                setLyricsCardShown(checked);
+              }}
+            />
+          </div>
+          {lyricsCard === "on" && (
+            <div className="liquifyRow">
+              <div className="liquifyLabel">{t.lyricsCardHeight || "Lyrics Card Height:"}<HelpTip text={tips.lyricsCardHeight} /></div>
+              <div className="liquifyRowControls">
+                <Select
+                  value={lyricsCardMode}
+                  options={[
+                    { value: "default", label: t.lyricsCardHeightOptions?.default || "Default" },
+                    { value: "custom", label: t.lyricsCardHeightOptions?.custom || "Custom" },
+                    { value: "fit", label: t.lyricsCardHeightOptions?.fit || "Fit to Sidebar" }
+                  ]}
+                  onChange={(v) => {
+                    const mode = v as LyricsCardHeightMode;
+                    setLyricsCardModeState(mode);
+                    setLyricsCardHeightMode(mode);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          {lyricsCard === "on" && lyricsCardMode === "custom" && (
+            <div className="liquifyRow">
+              <div className="liquifyLabel">{t.lyricsCardCustomHeight || "Custom Card Height (px):"}</div>
+              <Stepper value={lyricsCardHeight} min={LYRICS_CARD_HEIGHT_MIN} max={LYRICS_CARD_HEIGHT_MAX} onChange={(v) => { setLyricsCardHeightState(v); setLyricsCardHeight(v); }} />
             </div>
           )}
         </SubSection>

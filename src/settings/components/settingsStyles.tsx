@@ -1717,7 +1717,6 @@ const TOGGLE_INSET = 2;
 const TOGGLE_SIZE = { width: 64, height: 28 };
 const TOGGLE_KNOB_WIDTH = 40;
 
-// Whole device pixels, so the knob stays centred at fractional display scaling.
 function toggleGeometry() {
   const dpr = window.devicePixelRatio || 1;
   const inset = Math.max(1, Math.round(TOGGLE_INSET * dpr)) / dpr;

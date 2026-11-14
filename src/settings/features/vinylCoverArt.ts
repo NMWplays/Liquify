@@ -116,13 +116,12 @@ ${host}${layer} {
   rotate: -28deg;
   transition: rotate 0.9s cubic-bezier(0.45, 0.05, 0.25, 1);
 }
-${host}:is(html.${PLAYING_CLASS} *)${layer} {
+html.${PLAYING_CLASS} :is(${host})${layer} {
   rotate: 0deg;
   animation: liquify-tonearm-ride 3.4s ease-in-out 0.9s infinite;
 }`;
 }
 
-// The picture spins inside a round clip, never the disc: a turning square flickers scrollbars.
 function vinylCss(disc: string, art: string): string {
   return `
 ${disc} {
@@ -135,9 +134,8 @@ ${art} {
   animation: liquify-vinyl-spin var(--liquify-vinyl-spin, 12s) linear infinite;
   animation-play-state: paused;
 }
-/* Appended rather than put in front: the art selector may start with :root,
-   which has no ancestor for html.${PLAYING_CLASS} to be. */
-${art}:is(html.${PLAYING_CLASS} *) { animation-play-state: running; }
+/* Subject must name the art, or every element restyles. */
+html.${PLAYING_CLASS} :is(${art}) { animation-play-state: running; }
 ${discFurniture(disc)}`;
 }
 
@@ -146,7 +144,7 @@ function buildCss(): string {
   const tonearm = isVinylDetailOn('tonearm');
 
   if (isVinylOn('npv')) {
-    const slot = `${NPV_COVER_SLOT}:not(:has(#cs-track))`;
+    const slot = `${NPV_COVER_SLOT}:not(.cs-host)`;
     parts.push(vinylCss(slot, `${slot} img`));
     parts.push(`
 #cs-track .cs-slot { border-radius: 50% !important; }

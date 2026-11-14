@@ -54,7 +54,6 @@ export function applyComfyCoverArt(setDefaultRadius = true) {
   const h = readNum(CCA_HEIGHT_KEY, CCA_DEFAULTS.height);
   const mb = readNum(CCA_MARGIN_BOTTOM_KEY, CCA_DEFAULTS.marginBottom);
   const ml = readNum(CCA_MARGIN_LEFT_KEY, CCA_DEFAULTS.marginLeft);
-  // Lifted by an offset, not a margin: a margin pushed the widget out of the window.
   const css = `
     ${PLAYBAR_COVER_SLOT} {
       width: ${w}px !important;

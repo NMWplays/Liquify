@@ -81,19 +81,20 @@ const GLASS_TARGETS: GlassTarget[] = [
   { selector: '.home-page-content > section' },
   { selector: '.shelf' },
   { selector: '.related-videos-section' },
-  { selector: '.e-legacy-box--elevated' }
+  { selector: '.e-legacy-box--elevated' },
+  { selector: '.e-legacy-overlay' },
+  { selector: '.playback-progress-hover-label' }
 ];
 
-function start(): void {
+function boot(): void {
   installGlassDevtools();
   applyGlass(GLASS_TARGETS);
   startBackground();
   startPopupBounce();
-  startLiquifySettings();
+  void startLiquifySettings();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', start, { once: true });
-} else {
-  start();
+export default function start(): void {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
 }

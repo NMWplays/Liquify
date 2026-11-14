@@ -1,6 +1,7 @@
 import { readLS } from '../shared';
 import { PLAYBAR_COVER_SLOT } from './playbarCoverRadius';
 import { isNscCoverFlipOn } from './nextSongCard';
+import { patch } from '../../lifecycle/runtime';
 
 export const COVER_FLIP_KEY = 'liquify-cover-flip';
 export const NPV_COVER_ANIM_KEY = 'liquify-npv-cover-anim';
@@ -146,7 +147,6 @@ function flipper(slotSelector: string, enabled: () => boolean) {
       const depth = Math.round(Math.max(520, slot.offsetWidth * 5.5));
       const turn = (deg: number): string => `perspective(${depth}px) rotateY(${deg}deg)`;
 
-      // Spotify may swap the picture before the track event, so the old one is laid on top.
       if (lastSrc) {
         overlay = document.createElement('img');
         overlay.className = OVERLAY_CLASS;
@@ -201,7 +201,7 @@ export function installCoverFlip(): void {
   }, true);
   if (typeof player.previous === 'function') {
     const previous = player.previous;
-    player.previous = (...args: any[]) => { markBack(); return previous.apply(player, args); };
+    patch(player, 'previous', (...args: any[]) => { markBack(); return previous.apply(player, args); });
   }
 
   player.on('track', () => {

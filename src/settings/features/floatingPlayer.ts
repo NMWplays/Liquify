@@ -17,7 +17,6 @@ function updateFloatingPlayerCss(on: boolean) {
   const css = on
     ? [
         `${PLAYER_BAR} { position: absolute; bottom: 0px; justify-self: center; z-index: var(--now-playing-bar-grid-area-z-index, 6); }`,
-        // Spotify's scroll child is 100% tall and the pages overflow it, so the pages get the padding.
         ".your-library-list," +
           ".panel-section-content, .queue-panel-tab-panel," +
           ".home-page, .home-page-shelf--full-page, .shelves-page, .search-page, .search-tracks-page," +

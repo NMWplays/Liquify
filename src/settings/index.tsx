@@ -28,12 +28,15 @@ import { ensureProgressBarHeightApplied } from './features/progressBarHeight';
 import { ensureProgressBarRadiusApplied } from './features/progressBarRadius';
 import { installShareButtonTransition } from './features/shareButtonTransition';
 import { ensureThemedLyricsApplied } from './features/themedLyrics';
+import { ensureLyricsCardApplied } from './features/lyricsCard';
 import { ensureWindowControlsApplied } from './features/windowControls';
 import { applySavedTransparentPlayer } from './features/transparentPlayer';
 import { applySavedFloatingPlayer } from './features/floatingPlayer';
 import { applySavedConnectBar } from './features/connectBar';
 import { ensurePopupBounceApplied } from './features/uiEffects';
 import { installHomeScreenVisualizer, installPlaylistIndicatorVisualizer } from './features/visualizers';
+import { installPlaybarVisualizer } from './features/playbarVisualizer';
+import { installWindowControlsWatch } from './features/windowControls';
 import { initLiquifyGearInjection } from './gear';
 import { setGlassEnabled } from '../glassSurface';
 import { getTranslation } from './i18n/translations';
@@ -65,6 +68,7 @@ function applySavedLayoutSettings(): void {
   ensureProgressBarRadiusApplied();
   ensureLayoutRadiusApplied();
   ensureThemedLyricsApplied();
+  ensureLyricsCardApplied();
   ensureGlassBlurApplied();
   ensureSidebarBlurApplied();
   ensureFontsApplied();
@@ -117,6 +121,8 @@ function installFeatureControllers(): void {
     installMiniPlayer,
     installPlayerControlIcons,
     installShareButtonTransition,
+    installPlaybarVisualizer,
+    installWindowControlsWatch,
   ];
   for (const install of installers) {
     try {

@@ -7,6 +7,7 @@ import { PROGRESS_BAR_RADIUS_KEY } from './progressBarRadius';
 import { GLASS_BLUR_KEY, BACKDROP_BLUR_KEY } from './glassBlur';
 import { CONNECT_BAR_KEY } from './connectBar';
 import { NAV_RADIUS_KEY, MAIN_RADIUS_KEY, RIGHT_RADIUS_KEY } from './layoutRadius';
+import { LYRICS_CARD_SHOW_KEY, LYRICS_CARD_HEIGHT_MODE_KEY, LYRICS_CARD_HEIGHT_KEY } from './lyricsCard';
 import { THEMED_LYRICS_KEY, LYRICS_FONT_SIZE_KEY, LYRICS_MARGIN_KEY } from './themedLyrics';
 import {
   NSC_SHOW_KEY, NSC_POSITION_KEY, NSC_HEIGHT_KEY, NSC_MAX_WIDTH_KEY, NSC_GAP_KEY,
@@ -19,6 +20,7 @@ import {
 } from './comfyCoverArt';
 import { PLAYBAR_COVER_BORDER_RADIUS_KEY } from './playbarCoverRadius';
 import { PLAYER_ICONS_KEY } from './playerControlIcons';
+import { PLAYBAR_EQ_KEY } from './playbarVisualizer';
 import { KAWARP_KEYS } from './kawarpBackground';
 import { BG_ENGINE_KEY, BG_SURFACES } from './backgroundAppearance';
 import { SIDEBARS } from './sidebarBlur';
@@ -61,6 +63,9 @@ export const CONFIG_KEYS: string[] = [
   THEMED_LYRICS_KEY,
   LYRICS_FONT_SIZE_KEY,
   LYRICS_MARGIN_KEY,
+  LYRICS_CARD_SHOW_KEY,
+  LYRICS_CARD_HEIGHT_MODE_KEY,
+  LYRICS_CARD_HEIGHT_KEY,
   NSC_SHOW_KEY, NSC_POSITION_KEY, NSC_HEIGHT_KEY, NSC_MAX_WIDTH_KEY, NSC_GAP_KEY,
   NSC_COVER_SIZE_KEY, NSC_HPAD_KEY, NSC_VPAD_KEY, NSC_GAP_PLAYER_KEY,
   NSC_BORDER_RADIUS_KEY, NSC_COVER_BORDER_RADIUS_KEY, NSC_BLUR_KEY, NSC_COVER_FLIP_KEY,
@@ -68,6 +73,7 @@ export const CONFIG_KEYS: string[] = [
   CCA_ENABLED_KEY, CCA_WIDTH_KEY, CCA_HEIGHT_KEY, CCA_MARGIN_BOTTOM_KEY, CCA_MARGIN_LEFT_KEY,
   PLAYBAR_COVER_BORDER_RADIUS_KEY,
   PLAYER_ICONS_KEY,
+  PLAYBAR_EQ_KEY,
   ...Object.values(SIDEBARS).flatMap((spec) => [spec.key, spec.amountKey]),
   LOCAL_FILES_TRANSPARENT_KEY,
   FONT_BODY_KEY,

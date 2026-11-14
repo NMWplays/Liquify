@@ -60,6 +60,11 @@ export const settingsCopy: any = {
   connectBar: "Show Connect Bar:",
   compactPlayer: "Compact Player:",
   playerControlIcons: "Use New Player Icons:",
+  playbarEq: "Playbar Equalizer:",
+  lyricsCard: "Show Lyrics Card:",
+  lyricsCardHeight: "Lyrics Card Height:",
+  lyricsCardHeightOptions: { default: "Default", custom: "Custom", fit: "Fit to Sidebar" },
+  lyricsCardCustomHeight: "Custom Card Height (px):",
   progressBarHeight: "Progress & Volume Bar Height (px):",
   progressBarRadius: "Progress & Volume Bar Border Radius (px):",
   progressBarCompat: "Compatibility Mode:",
@@ -109,8 +114,10 @@ export const settingsCopy: any = {
     progressVolume: "Progress & Volume Bar",
     coverArt: "Cover Art",
     modes: "Modes",
+    visualizer: "Visualizer",
     styling: "Styling",
     translation: "Translation",
+    lyricsCard: "Lyrics Card",
     kawarp: "Animated Background",
     sidebars: "Sidebars",
     typography: "Typography",
@@ -242,6 +249,9 @@ export const settingsCopy: any = {
     transparentPlayer: "Removes the glass refraction from the bottom playbar so it's see-through.",
     compactPlayer: "Shrinks the bottom bar to a single row with controls and progress side by side.",
     playerControlIcons: "Replaces Spotify's play, pause and skip glyphs with Liquify's own media player icons.",
+    playbarEq: "Equalizer bars on top of the playbar that move with the song.",
+    lyricsCard: "Shows or hides the lyrics card in the right sidebar.",
+    lyricsCardHeight: "Default keeps Spotify's height. Fit to Sidebar sizes the card so it ends exactly at the bottom of the right sidebar, also while you resize it.",
     connectBar: "The bar that appears when playback is running on another device via Spotify Connect.",
     nextSongCard: "Shows a small preview card of the upcoming track.",
     canvasCoverArt: "Adds the cover art in the Now Playing view: next to the track info, outside it, or off.",
@@ -1279,6 +1289,40 @@ const NSC_COVER_FLIP_STRINGS: Record<string, any> = {
 
 for (const code of Object.keys(NSC_COVER_FLIP_STRINGS)) {
   liquifyTranslations[code] = deepMerge(liquifyTranslations[code], NSC_COVER_FLIP_STRINGS[code]);
+}
+
+const PLAYBAR_EQ_STRINGS: Record<string, any> = {
+  de: { playbarEq: "Playbar-Equalizer:", subSections: { visualizer: "Visualizer" }, tooltips: { playbarEq: "Equalizer-Balken oben auf der Playbar, die sich mit dem Song bewegen." } },
+  ru: { playbarEq: "Эквалайзер плеера:", subSections: { visualizer: "Визуализатор" }, tooltips: { playbarEq: "Полоски эквалайзера над панелью плеера, движущиеся в такт песне." } },
+  es: { playbarEq: "Ecualizador de la barra:", subSections: { visualizer: "Visualizador" }, tooltips: { playbarEq: "Barras de ecualizador sobre la barra de reproducción que se mueven con la canción." } },
+  pt: { playbarEq: "Equalizador da barra:", subSections: { visualizer: "Visualizador" }, tooltips: { playbarEq: "Barras de equalizador sobre a barra de reprodução que se movem com a música." } },
+  tr: { playbarEq: "Oynatıcı ekolayzırı:", subSections: { visualizer: "Görselleştirici" }, tooltips: { playbarEq: "Oynatıcı çubuğunun üstünde şarkıyla hareket eden ekolayzır çubukları." } },
+  hi: { playbarEq: "प्लेबार इक्वलाइज़र:", subSections: { visualizer: "विज़ुअलाइज़र" }, tooltips: { playbarEq: "प्लेबार के ऊपर इक्वलाइज़र बार जो गाने के साथ चलते हैं।" } },
+  sv: { playbarEq: "Spelfältsequalizer:", subSections: { visualizer: "Visualiserare" }, tooltips: { playbarEq: "Equalizerstaplar ovanpå spelfältet som rör sig med låten." } },
+  ja: { playbarEq: "プレイバーイコライザー:", subSections: { visualizer: "ビジュアライザー" }, tooltips: { playbarEq: "曲に合わせて動くイコライザーバーをプレイバーの上に表示します。" } },
+  zh: { playbarEq: "播放栏均衡器:", subSections: { visualizer: "可视化" }, tooltips: { playbarEq: "播放栏上方随歌曲律动的均衡器条。" } },
+  ko: { playbarEq: "플레이바 이퀄라이저:", subSections: { visualizer: "비주얼라이저" }, tooltips: { playbarEq: "노래에 맞춰 움직이는 이퀄라이저 막대를 플레이바 위에 표시합니다." } },
+};
+
+for (const code of Object.keys(PLAYBAR_EQ_STRINGS)) {
+  liquifyTranslations[code] = deepMerge(liquifyTranslations[code], PLAYBAR_EQ_STRINGS[code]);
+}
+
+const LYRICS_CARD_STRINGS: Record<string, any> = {
+  de: { lyricsCard: "Lyrics-Karte anzeigen:", lyricsCardHeight: "Höhe der Lyrics-Karte:", lyricsCardHeightOptions: { default: "Standard", custom: "Eigene", fit: "An Seitenleiste anpassen" }, lyricsCardCustomHeight: "Eigene Kartenhöhe (px):", subSections: { lyricsCard: "Lyrics-Karte" }, tooltips: { lyricsCard: "Blendet die Lyrics-Karte in der rechten Seitenleiste ein oder aus.", lyricsCardHeight: "Standard behält Spotifys Höhe. An Seitenleiste anpassen macht die Karte so hoch, dass sie genau am unteren Rand der rechten Seitenleiste endet, auch beim Ändern der Größe." } },
+  ru: { lyricsCard: "Показывать карточку текста:", lyricsCardHeight: "Высота карточки текста:", lyricsCardHeightOptions: { default: "По умолчанию", custom: "Своя", fit: "По боковой панели" }, lyricsCardCustomHeight: "Своя высота карточки (px):", subSections: { lyricsCard: "Карточка текста" }, tooltips: { lyricsCard: "Показывает или скрывает карточку текста в правой боковой панели.", lyricsCardHeight: "По умолчанию — высота Spotify. «По боковой панели» подгоняет карточку так, чтобы она заканчивалась точно у нижнего края правой панели, даже при изменении её размера." } },
+  es: { lyricsCard: "Mostrar tarjeta de letras:", lyricsCardHeight: "Altura de la tarjeta de letras:", lyricsCardHeightOptions: { default: "Predeterminada", custom: "Personalizada", fit: "Ajustar a la barra lateral" }, lyricsCardCustomHeight: "Altura personalizada (px):", subSections: { lyricsCard: "Tarjeta de letras" }, tooltips: { lyricsCard: "Muestra u oculta la tarjeta de letras en la barra lateral derecha.", lyricsCardHeight: "Predeterminada mantiene la altura de Spotify. Ajustar a la barra lateral hace que la tarjeta termine justo en el borde inferior de la barra derecha, también al cambiar su tamaño." } },
+  pt: { lyricsCard: "Mostrar cartão de letras:", lyricsCardHeight: "Altura do cartão de letras:", lyricsCardHeightOptions: { default: "Padrão", custom: "Personalizada", fit: "Ajustar à barra lateral" }, lyricsCardCustomHeight: "Altura personalizada (px):", subSections: { lyricsCard: "Cartão de letras" }, tooltips: { lyricsCard: "Mostra ou oculta o cartão de letras na barra lateral direita.", lyricsCardHeight: "Padrão mantém a altura do Spotify. Ajustar à barra lateral faz o cartão terminar exatamente na borda inferior da barra direita, também ao redimensioná-la." } },
+  tr: { lyricsCard: "Şarkı sözü kartını göster:", lyricsCardHeight: "Şarkı sözü kartı yüksekliği:", lyricsCardHeightOptions: { default: "Varsayılan", custom: "Özel", fit: "Kenar çubuğuna sığdır" }, lyricsCardCustomHeight: "Özel kart yüksekliği (px):", subSections: { lyricsCard: "Şarkı sözü kartı" }, tooltips: { lyricsCard: "Sağ kenar çubuğundaki şarkı sözü kartını gösterir veya gizler.", lyricsCardHeight: "Varsayılan, Spotify'ın yüksekliğini korur. Kenar çubuğuna sığdır, kartı sağ kenar çubuğunun alt kenarında tam bitecek şekilde boyutlandırır; yeniden boyutlandırırken de." } },
+  hi: { lyricsCard: "लिरिक्स कार्ड दिखाएँ:", lyricsCardHeight: "लिरिक्स कार्ड की ऊँचाई:", lyricsCardHeightOptions: { default: "डिफ़ॉल्ट", custom: "कस्टम", fit: "साइडबार में फ़िट" }, lyricsCardCustomHeight: "कस्टम कार्ड ऊँचाई (px):", subSections: { lyricsCard: "लिरिक्स कार्ड" }, tooltips: { lyricsCard: "दाएँ साइडबार में लिरिक्स कार्ड दिखाता या छिपाता है।", lyricsCardHeight: "डिफ़ॉल्ट Spotify की ऊँचाई रखता है। साइडबार में फ़िट कार्ड को ऐसा बनाता है कि वह दाएँ साइडबार के निचले किनारे पर ठीक ख़त्म हो, रीसाइज़ करते समय भी।" } },
+  sv: { lyricsCard: "Visa låttextkort:", lyricsCardHeight: "Höjd på låttextkortet:", lyricsCardHeightOptions: { default: "Standard", custom: "Anpassad", fit: "Anpassa till sidofältet" }, lyricsCardCustomHeight: "Anpassad korthöjd (px):", subSections: { lyricsCard: "Låttextkort" }, tooltips: { lyricsCard: "Visar eller döljer låttextkortet i det högra sidofältet.", lyricsCardHeight: "Standard behåller Spotifys höjd. Anpassa till sidofältet gör kortet så högt att det slutar exakt vid nederkanten av det högra sidofältet, även när du ändrar storleken." } },
+  ja: { lyricsCard: "歌詞カードを表示:", lyricsCardHeight: "歌詞カードの高さ:", lyricsCardHeightOptions: { default: "デフォルト", custom: "カスタム", fit: "サイドバーに合わせる" }, lyricsCardCustomHeight: "カスタムの高さ (px):", subSections: { lyricsCard: "歌詞カード" }, tooltips: { lyricsCard: "右サイドバーの歌詞カードを表示または非表示にします。", lyricsCardHeight: "デフォルトは Spotify の高さのままです。「サイドバーに合わせる」は、サイズ変更中も含めて、カードが右サイドバーの下端でぴったり終わるようにします。" } },
+  zh: { lyricsCard: "显示歌词卡片:", lyricsCardHeight: "歌词卡片高度:", lyricsCardHeightOptions: { default: "默认", custom: "自定义", fit: "适应侧边栏" }, lyricsCardCustomHeight: "自定义卡片高度 (px):", subSections: { lyricsCard: "歌词卡片" }, tooltips: { lyricsCard: "显示或隐藏右侧边栏中的歌词卡片。", lyricsCardHeight: "默认保持 Spotify 的高度。适应侧边栏会让卡片正好在右侧边栏底部结束，调整大小时也一样。" } },
+  ko: { lyricsCard: "가사 카드 표시:", lyricsCardHeight: "가사 카드 높이:", lyricsCardHeightOptions: { default: "기본", custom: "사용자 지정", fit: "사이드바에 맞추기" }, lyricsCardCustomHeight: "사용자 지정 카드 높이 (px):", subSections: { lyricsCard: "가사 카드" }, tooltips: { lyricsCard: "오른쪽 사이드바의 가사 카드를 표시하거나 숨깁니다.", lyricsCardHeight: "기본은 Spotify의 높이를 유지합니다. 사이드바에 맞추기는 크기를 조절할 때도 카드가 오른쪽 사이드바 아래쪽 가장자리에서 정확히 끝나도록 합니다." } },
+};
+
+for (const code of Object.keys(LYRICS_CARD_STRINGS)) {
+  liquifyTranslations[code] = deepMerge(liquifyTranslations[code], LYRICS_CARD_STRINGS[code]);
 }
 
 export const LANGUAGE_KEY = "liquify-language";

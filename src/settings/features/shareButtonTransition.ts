@@ -2,7 +2,6 @@ import { updateStyle } from '../shared';
 
 const SHARE_BUTTON = '.npv-hover-share-button';
 
-// theme.css's !important bounce on .e-legacy-button would otherwise drop Spotify's fade.
 export function installShareButtonTransition(): void {
   updateStyle(
     'liquify-share-button-transition',

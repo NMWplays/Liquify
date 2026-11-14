@@ -1,11 +1,13 @@
 import { CANVAS_CONTAINER_SEL, hasMountedCanvasMedia } from '../shared';
 import { getNpvCoverAnim } from './coverFlip';
+import { onStop, patch } from '../../lifecycle/runtime';
 
 export function installCoverSwipe() {
   (() => {
     const anyWin = window as any;
     const STYLE_ID = 'cs-cover-swipe';
     const TRACK_ID  = 'cs-track';
+    const HOST_CLASS = 'cs-host';
     const TRAVEL    = 2;
     const DURATION  = Math.round(300 * TRAVEL * 0.9);
     const SETTLE    = 190;
@@ -31,10 +33,10 @@ export function installCoverSwipe() {
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-        ${CONTAINER_SEL}:has(#${TRACK_ID}) > ${SPOTIFY_COVER_SEL} {
+        ${CONTAINER_SEL}.${HOST_CLASS} > ${SPOTIFY_COVER_SEL} {
             visibility: hidden !important;
         }
-        ${CONTAINER_SEL}:has(#${TRACK_ID})::after {
+        ${CONTAINER_SEL}.${HOST_CLASS}::after {
             display: none !important;
         }
         #${TRACK_ID} {
@@ -93,11 +95,6 @@ export function installCoverSwipe() {
         #${TRACK_ID}.cs-animating .cs-slot {
             transition: transform ${DURATION}ms cubic-bezier(.4, 0, .2, 1);
         }
-        /* The arriving cover gets the spring, as two legs rather than one curve
-           (see SETTLE). The first runs to ${SLIDE_END}% of the total, which is
-           exactly the old ${DURATION}ms, on exactly the old easing — so the
-           swipe travels at the pace it always did. It stops ${OVERSHOOT}% of a
-           cover width past centre, and the remaining ${SETTLE}ms ease that back. */
         @keyframes liquifyCsArriveNext {
             0%   { transform: translateX(var(--cs-travel)); animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
             ${SLIDE_END}% { transform: translateX(-${OVERSHOOT}%); animation-timing-function: cubic-bezier(.33, 0, .25, 1); }
@@ -232,8 +229,8 @@ export function installCoverSwipe() {
     let manualSkipPending = false;
     let manualSkipTimer: ReturnType<typeof setTimeout> | null = null;
     let lastCanvasOffAt = 0;
+    let songChangedAt = 0;
 
-    // The queue only hands out 300px art, too soft for the sidebar cover.
     const sharp = (url: string) => url.replace(/\/image\/ab67616d0000(?:4851|11eb|1e02)/i, '/image/ab67616d0000b273');
 
     const setSlot = (slot: HTMLElement | null, url: string) => {
@@ -258,6 +255,11 @@ export function installCoverSwipe() {
     };
 
     const refreshAdjacent = () => {
+        const realUri = getCurrentUri();
+        if (realUri && realUri !== currentUri) {
+            if (Date.now() - songChangedAt > 1500) syncFromTruth();
+            return;
+        }
         const nNext = getNextCoverUrl(), nNextUri = getNextUri();
         if (nNextUri !== nextUri) { nextUri = nNextUri; nextUrl = nNext; setSlot(nextSlot, nextUrl); }
         const nPrev = getPrevCoverUrl(), nPrevUri = getPrevUri();
@@ -283,7 +285,6 @@ export function installCoverSwipe() {
     const UNCLIP_BOTH_CLASS = 'cs-unclip-both';
     let unclipped: HTMLElement[] = [];
 
-    // Lets travelling covers paint past Spotify's clipping wrappers without making them scroll.
     const unclipAncestors = (from: HTMLElement) => {
         clearUnclipped();
         const stop = document.querySelector(SIDEBAR_SEL);
@@ -304,6 +305,7 @@ export function installCoverSwipe() {
     const mount = (container: HTMLElement) => {
         if (track) return;
         mountedContainer = container;
+        container.classList.add(HOST_CLASS);
         origPosition = container.style.position;
         if (getComputedStyle(container).position === 'static') {
             container.style.position = 'relative';
@@ -364,6 +366,7 @@ export function installCoverSwipe() {
         nextObserver?.disconnect(); nextObserver = null;
         canvasObserver?.disconnect(); canvasObserver = null;
         track.remove();
+        mountedContainer?.classList.remove(HOST_CLASS);
         if (mountedContainer && document.body.contains(mountedContainer)) {
             mountedContainer.style.position = origPosition;
         }
@@ -589,6 +592,7 @@ export function installCoverSwipe() {
     document.addEventListener('keydown', onKeyDown, true);
 
     const onSongChange = () => {
+        songChangedAt = Date.now();
         if (!track) return;
 
         if (manualSkipPending) {
@@ -612,9 +616,9 @@ export function installCoverSwipe() {
                 refreshAdjacent();
                 return;
             }
-            if (freshUri === nextUri) {
+            if (freshUri === nextUri || (currentUri && getPrevUri() === currentUri)) {
                 swipeWithKnownTarget('next', fresh, freshUri);
-            } else if (freshUri === prevUri) {
+            } else if (freshUri === prevUri || (currentUri && getNextUri() === currentUri)) {
                 swipeWithKnownTarget('prev', fresh, freshUri);
             } else {
                 crossfadeToNew(fresh, freshUri);
@@ -627,8 +631,8 @@ export function installCoverSwipe() {
     if (player && typeof player.next === 'function' && typeof player.previous === 'function') {
         origNext = player.next.bind(player);
         origPrevious = player.previous.bind(player);
-        player.next = (...a: any[]) => { markManualSkip(); swipe('next'); return origNext(...a); };
-        player.previous = (...a: any[]) => { tryBack(); return origPrevious(...a); };
+        patch(player, 'next', (...a: any[]) => { markManualSkip(); swipe('next'); return origNext(...a); });
+        patch(player, 'previous', (...a: any[]) => { tryBack(); return origPrevious(...a); });
         player.on?.('track', onSongChange);
     }
 
@@ -664,11 +668,10 @@ export function installCoverSwipe() {
         unmount();
         if (player) {
             player.off?.('track', onSongChange);
-            if (origNext) player.next = origNext;
-            if (origPrevious) player.previous = origPrevious;
         }
         document.getElementById(STYLE_ID)?.remove();
         delete anyWin.__coverSwipeOff;
     };
+    onStop(() => anyWin.__coverSwipeOff?.());
   })();
 }

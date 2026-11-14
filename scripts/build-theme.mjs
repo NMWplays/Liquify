@@ -1,14 +1,16 @@
 import { build, context } from "esbuild";
 import { resolve } from "node:path";
+import { addonOptions } from "./lifecycle.mjs";
 
 const watch = process.argv.includes("--watch");
 const reactShim = resolve("src/settings/react-shim.ts");
 
-const options = {
-  entryPoints: ["src/theme.ts"],
+const options = addonOptions({
+  entry: "src/theme.ts",
   outfile: "dist/theme.js",
-  bundle: true,
-  format: "iife",
+  runtime: "src/lifecycle/runtime.ts",
+  globals: /^(liquify|showLiquify|__coverSwipe)/,
+  remove: ".liquify-popup-clone",
   target: ["chrome98"],
   platform: "browser",
   loader: {
@@ -24,7 +26,7 @@ const options = {
       },
     },
   ],
-};
+});
 
 if (watch) {
   const ctx = await context(options);

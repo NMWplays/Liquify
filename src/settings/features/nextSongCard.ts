@@ -342,7 +342,6 @@ export function installNextSongCard() {
     const cardHeight = card.offsetHeight || v.height;
 
     const top = `${rect.top - cardHeight - v.gapToPlayer}px`;
-    // Anchored at the edge it sits against, so a width change grows away from it.
     const right = v.position === "right";
     const left = right ? "auto" : `${rect.left}px`;
     const rightEdge = right ? `${document.documentElement.clientWidth - rect.right}px` : "auto";

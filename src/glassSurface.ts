@@ -122,7 +122,6 @@ export function applyGlass(targets: GlassTarget[]): void {
 
   let glassCss = '';
   let perfCss = '';
-  // Keeps the ::before glass above the element's own inset highlights.
   const isolated = [...groups.values()]
     .filter((group) => group.before)
     .flatMap((group) => group.selectors.map((s) => s.slice(0, -'::before'.length)));

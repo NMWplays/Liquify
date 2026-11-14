@@ -86,7 +86,6 @@ export function startPopupBounce(): void {
     s.width = `${rect.width}px`;
     s.height = `${rect.height}px`;
     s.margin = '0';
-    // Detached from its parent, the clone's list is no longer height-limited.
     s.overflow = 'hidden';
     s.pointerEvents = 'none';
     s.zIndex = '10000';

@@ -71,14 +71,14 @@ type Segment = {
   timbre?: number[];
 };
 
-const FLOOR = 0.22;
+export const FLOOR = 0.22;
 const EXPAND = 1.5;
 const ATTACK = 30;
 const RELEASE = 9;
 const AGC_DECAY = 0.62;
 const AGC_FLOOR = 0.06;
 
-function lastStartingBefore<T extends { start: number }>(list: T[], t: number): number {
+export function lastStartingBefore<T extends { start: number }>(list: T[], t: number): number {
   let lo = 0, hi = list.length - 1;
   if (hi < 0 || list[0].start > t) return -1;
   while (lo < hi) {
@@ -118,8 +118,7 @@ function loudnessAt(segments: Segment[], i: number, t: number): number {
   return s.loudness_max + (to - s.loudness_max) * f;
 }
 
-// Rythora's five frequency bands, estimated from Spotify's audio analysis.
-function computeLevels(a: any, durationSec: number): { levels: number[][]; offsets: number[] } {
+export function computeLevels(a: any, durationSec: number): { levels: number[][]; offsets: number[] } {
   const segments: Segment[] = a.segments;
   const beats: Pulse[] = a.beats ?? [];
   const downbeats: Pulse[] = a.bars ?? [];
@@ -179,7 +178,7 @@ function computeLevels(a: any, durationSec: number): { levels: number[][]; offse
   return { levels, offsets };
 }
 
-const SAMPLE_STEP = 0.06;
+export const SAMPLE_STEP = 0.06;
 const RESYNC_MS = 1000;
 const MAX_DRIFT_MS = 120;
 
@@ -187,11 +186,13 @@ const LiveEq = (() => {
   const wrappers = new Set<HTMLElement>();
   const animations = new Map<HTMLElement, { live: boolean; anims: Animation[] }>();
   let analysisUri = '';
+  let warmUri = '';
   let loading = '';
   let levels: number[][] | null = null;
   let offsets: number[] = [];
   let durationMs = 0;
   let framesCache = new Map<string, Keyframe[][]>();
+  let effects = new Map<string, KeyframeEffect>();
   let resyncTimer = 0;
 
   async function load(uri: string): Promise<void> {
@@ -200,8 +201,10 @@ const LiveEq = (() => {
     analysisUri = '';
     levels = null;
     framesCache = new Map();
+    effects = new Map();
     if (!uri.startsWith('spotify:track:')) { refresh(); return; }
     loading = uri;
+    let ready = false;
     try {
       const a = await (window as any).SpotiKit.Audio.analysis(uri);
       if (loading !== uri) return;
@@ -211,13 +214,14 @@ const LiveEq = (() => {
         ({ levels, offsets } = computeLevels(a, durationSec));
         durationMs = durationSec * 1000;
         analysisUri = uri;
+        ready = true;
       }
-    } catch (e) {
-      console.warn('[Liquify] audio analysis unavailable', e);
+    } catch {
     } finally {
       if (loading === uri) loading = '';
-      refresh();
     }
+    if (ready) prewarm(uri, refresh);
+    else refresh();
   }
 
   function liveFrames(k: number, fullH: number): Keyframe[][] {
@@ -228,6 +232,41 @@ const LiveEq = (() => {
       framesCache.set(key, frames);
     }
     return frames;
+  }
+
+  // Copying a parsed effect is ~10x cheaper than parsing.
+  function liveEffect(k: number, fullH: number, part: number): KeyframeEffect {
+    const key = `${k}|${fullH}|${part}`;
+    let effect = effects.get(key);
+    if (!effect) {
+      effect = new KeyframeEffect(null, liveFrames(k, fullH)[part], { duration: durationMs, fill: 'both' });
+      effects.set(key, effect);
+    }
+    return effect;
+  }
+
+  function liveHeights(): Set<number> {
+    const out = new Set<number>();
+    for (const w of wrappers) {
+      if (!w.isConnected) continue;
+      for (const bar of Array.from(w.children) as HTMLElement[]) out.add(Number(bar.dataset.fullH) || 16);
+    }
+    return out;
+  }
+
+  function prewarm(uri: string, done: () => void): void {
+    const todo: Array<[number, number, number]> = [];
+    for (const fullH of liveHeights()) for (let k = 0; k < BAR_COUNT; k++) for (let part = 0; part < 3; part++) todo.push([k, fullH, part]);
+    const step = (deadline: IdleDeadline) => {
+      if (analysisUri !== uri) return;
+      do {
+        const next = todo.shift();
+        if (!next) { warmUri = uri; done(); return; }
+        liveEffect(...next);
+      } while (deadline.timeRemaining() > 6);
+      requestIdleCallback(step, { timeout: 300 });
+    };
+    requestIdleCallback(step, { timeout: 300 });
   }
 
   function cancel(w: HTMLElement): void {
@@ -243,8 +282,13 @@ const LiveEq = (() => {
       const fullH = Number(bar.dataset.fullH) || 16;
       const pieces = Array.from(bar.children) as HTMLElement[];
       if (live) {
-        const frames = liveFrames(k, fullH);
-        pieces.forEach((piece, i) => anims.push(piece.animate(frames[i], { duration: durationMs, fill: 'both' })));
+        pieces.forEach((piece, i) => {
+          const effect = new KeyframeEffect(liveEffect(k, fullH, i));
+          effect.target = piece;
+          const anim = new Animation(effect, document.timeline);
+          anim.play();
+          anims.push(anim);
+        });
       } else {
         const frames = pieceFrames([2 * BAR_RADIUS / fullH, 1], fullH);
         const timing = BAR_TIMINGS[k];
@@ -274,7 +318,7 @@ const LiveEq = (() => {
   }
 
   function refresh(): void {
-    const live = !!levels && analysisUri === player()?.track?.uri;
+    const live = !!levels && warmUri === analysisUri && analysisUri === player()?.track?.uri;
     for (const w of [...wrappers]) {
       if (!w.isConnected) { wrappers.delete(w); cancel(w); continue; }
       animate(w, live);
@@ -314,7 +358,6 @@ function ensureLiveEq(): void {
   LiveEq.install();
 }
 
-// Only the middle scales and the caps slide, so the ends stay round.
 function createBar(className: string, index: number, fullH: number, rectHeight: number): HTMLDivElement {
   const bar = document.createElement('div');
   bar.classList.add(className);
@@ -380,7 +423,7 @@ export function installPlaylistIndicatorVisualizer() {
       wrapper.style.color = BAR_COLOR;
       wrapper.dataset.liquifyVisualizerWrapper = "1";
 
-      const fullH = Math.max(8, rectHeight * 0.8);
+      const fullH = Math.round(Math.max(8, rectHeight * 0.8));
       for (let i = 0; i < BAR_COUNT; i++) wrapper.appendChild(createBar("custom-playing-bar", i, fullH, rectHeight));
 
       parent.insertBefore(wrapper, indicator);
@@ -445,7 +488,7 @@ export function installHomeScreenVisualizer() {
       wrapper.style.flex = "0 0 auto";
       wrapper.dataset.liquifyHomeVisualizer = "1";
 
-      const fullH = Math.max(8, imgHeight * 0.8);
+      const fullH = Math.round(Math.max(8, imgHeight * 0.8));
       for (let i = 0; i < BAR_COUNT; i++) wrapper.appendChild(createBar("home-visualizer-bar", i, fullH, imgHeight));
 
       parent.insertBefore(wrapper, img);

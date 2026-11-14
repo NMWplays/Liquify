@@ -47,7 +47,7 @@ function resolveBigCover(base: string, big: string): void {
       window.dispatchEvent(new Event('liquifyBackgroundChange'));
     }
   };
-  probe.onload = () => settle(big);
+  probe.onload = () => probe.decode().catch(() => {}).then(() => settle(big));
   probe.onerror = () => settle(base);
   probe.src = big;
 }
@@ -76,8 +76,11 @@ function getCoverUrl(): string | null {
   const settled = coverSize.get(base);
   if (settled) return settled;
   resolveBigCover(base, big);
-  return null;
+  return base;
 }
+
+const coverIdOf = (image: string): string =>
+  image.match(/\/image\/ab67616d0000[0-9a-f]{4}([0-9a-f]{24})/i)?.[1] || image;
 
 function prefetchNeighbourCovers(): void {
   const queue: any = SpotiKit.Queue || {};
@@ -88,6 +91,101 @@ function prefetchNeighbourCovers(): void {
     const big = bigCoverUrlOf(base);
     if (big) resolveBigCover(base, big);
   }
+}
+
+const DECODED_KEEP = 8;
+const decoded = new Map<string, HTMLImageElement>();
+const decoding = new Map<string, Promise<void>>();
+
+function whenDecoded(url: string): Promise<void> {
+  const ready = decoded.get(url);
+  if (ready) {
+    decoded.delete(url);
+    decoded.set(url, ready);
+    return Promise.resolve();
+  }
+  let pending = decoding.get(url);
+  if (pending) return pending;
+  const img = new Image();
+  img.src = url;
+  pending = img
+    .decode()
+    .catch(() => {})
+    .then(() => {
+      decoding.delete(url);
+      decoded.set(url, img);
+      while (decoded.size > DECODED_KEEP) decoded.delete(decoded.keys().next().value!);
+    });
+  decoding.set(url, pending);
+  return pending;
+}
+
+function crossfader(bottom: HTMLElement[], top: HTMLElement[]) {
+  let shown: HTMLElement[] | null = null;
+  let busy: AbortController | null = null;
+  let queued: string | null = null;
+  const set = (els: HTMLElement[], on: boolean) => els.forEach((el) => el.classList.toggle('active', on));
+
+  function after(el: HTMLElement, then: () => void): void {
+    const ctl = new AbortController();
+    busy = ctl;
+    const finish = (): void => {
+      if (busy !== ctl) return;
+      ctl.abort();
+      busy = null;
+      then();
+      if (queued !== null) {
+        const image = queued;
+        queued = null;
+        show(image);
+      }
+    };
+    void getComputedStyle(el).opacity;
+    const fading = el.getAnimations().some((anim) => anim instanceof CSSTransition && anim.transitionProperty === 'opacity');
+    if (!fading) return finish();
+    const onEnd = (e: TransitionEvent): void => {
+      if (e.target === el && e.propertyName === 'opacity') finish();
+    };
+    el.addEventListener('transitionend', onEnd, { signal: ctl.signal });
+    el.addEventListener('transitioncancel', onEnd, { signal: ctl.signal });
+  }
+
+  function show(image: string): void {
+    if (busy) {
+      queued = image;
+      return;
+    }
+    const prev = shown;
+    const next = prev === bottom ? top : bottom;
+    shown = next;
+    next.forEach((el) => { el.style.backgroundImage = image; });
+    if (!prev) {
+      set(next, true);
+      after(next[0], () => {});
+    } else if (next === top) {
+      set(next, true);
+      after(top[0], () => set(prev, false));
+    } else {
+      next.forEach((el) => { el.style.transition = 'none'; });
+      set(next, true);
+      void next[0].offsetWidth;
+      next.forEach((el) => { el.style.transition = ''; });
+      set(prev, false);
+      after(top[0], () => {});
+    }
+  }
+
+  return {
+    show,
+    hide(): void {
+      busy?.abort();
+      busy = null;
+      queued = null;
+      shown = null;
+      set(bottom, false);
+      set(top, false);
+    },
+  };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -136,16 +234,16 @@ export async function startBackground(): Promise<void> {
   }
   root.prepend(animatedContainer);
 
+  const layers = crossfader([layerA], [layerB]);
+  const tiles = crossfader(animatedTilesA, animatedTilesB);
+
   const hideTiles = (): void => {
     animatedContainer.classList.remove('active');
-    animatedTilesA.forEach((tile) => tile.classList.remove('active'));
-    animatedTilesB.forEach((tile) => tile.classList.remove('active'));
+    tiles.hide();
   };
 
-  let useAnimatedA = true;
-  let useA = true;
-
   let lastRenderKey: string | null = null;
+  let lastCoverKey: string | null = null;
 
   const contextCoverCache = new Map<string, string>();
   let resolvingContextUri: string | null = null;
@@ -204,16 +302,32 @@ export async function startBackground(): Promise<void> {
     return null;
   }
 
+  let wantedKey: string | null = null;
+
   function render(kind: 'static' | 'animated', image: string | null, url: string | null): void {
     if (!image) return;
     const engine = getBgEngine();
     const key = `${kind}|${engine}|${image}`;
     if (key === lastRenderKey) return;
+    const viaKawarp = kind === 'animated' && engine === 'kawarp';
+    if (url && !viaKawarp && !decoded.has(url)) {
+      if (wantedKey === key) return;
+      wantedKey = key;
+      whenDecoded(url).then(() => {
+        if (wantedKey === key) render(kind, image, url);
+      });
+      return;
+    }
+    wantedKey = null;
     lastRenderKey = key;
 
-    if (kind === 'animated' && engine === 'kawarp' && url) {
-      layerA.classList.remove('active');
-      layerB.classList.remove('active');
+    const coverKey = `${kind}|${engine}|${coverIdOf(image)}`;
+    const upgrade = coverKey === lastCoverKey;
+    lastCoverKey = coverKey;
+    if (upgrade && viaKawarp) return;
+
+    if (viaKawarp && url) {
+      layers.hide();
       hideTiles();
       kawarp.setActive(true);
       kawarp.show(url);
@@ -223,31 +337,14 @@ export async function startBackground(): Promise<void> {
     kawarp.setActive(false);
 
     if (kind === 'animated') {
-      layerA.classList.remove('active');
-      layerB.classList.remove('active');
+      layers.hide();
       animatedContainer.classList.add('active');
-      const onTiles = useAnimatedA ? animatedTilesA : animatedTilesB;
-      const offTiles = useAnimatedA ? animatedTilesB : animatedTilesA;
-      onTiles.forEach((tile) => {
-        tile.style.backgroundImage = image;
-        tile.classList.add('active');
-      });
-      offTiles.forEach((tile) => tile.classList.remove('active'));
-      useAnimatedA = !useAnimatedA;
+      tiles.show(image);
       return;
     }
 
     hideTiles();
-    if (useA) {
-      layerA.style.backgroundImage = image;
-      layerA.classList.add('active');
-      layerB.classList.remove('active');
-    } else {
-      layerB.style.backgroundImage = image;
-      layerB.classList.add('active');
-      layerA.classList.remove('active');
-    }
-    useA = !useA;
+    layers.show(image);
   }
 
   function resolveBackdrop(): Backdrop {

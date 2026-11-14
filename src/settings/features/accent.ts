@@ -1,6 +1,7 @@
 import { readNum, updateStyle } from '../shared';
 import { Rgb, harmonize, parseColor, readableTextOn, toCss } from './color';
 import { paletteColor, sampleImageColor } from './accentColor';
+import { patch, patchDescriptor } from '../../lifecycle/runtime';
 
 const STORAGE = {
   mode: 'liquify-accent-mode',
@@ -228,7 +229,7 @@ export function resetGlowAccentToDefault(): void {
 
 function render(): void {
   window.clearTimeout(deferredRender);
-  // A :root restyle mid-skip makes the icon animation stutter.
+  // A :root restyle mid-skip stutters the icon animation.
   if (document.querySelector(BUSY_ANIMATIONS)) {
     deferredRender = window.setTimeout(render, BUSY_RETRY_MS);
     return;
@@ -299,7 +300,7 @@ function remember(image: string, color: Rgb): void {
 function recolorSpotifyCanvases(): void {
   const strokeStyle = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'strokeStyle');
   if (!strokeStyle?.set) return;
-  Object.defineProperty(CanvasRenderingContext2D.prototype, 'strokeStyle', {
+  patchDescriptor(CanvasRenderingContext2D.prototype, 'strokeStyle', {
     ...strokeStyle,
     set(value: string | CanvasGradient | CanvasPattern) {
       strokeStyle.set!.call(this, typeof value === 'string' ? canvasAccent(value) : value);
@@ -307,9 +308,9 @@ function recolorSpotifyCanvases(): void {
   });
 
   const addColorStop = CanvasGradient.prototype.addColorStop;
-  CanvasGradient.prototype.addColorStop = function (offset: number, color: string) {
+  patch(CanvasGradient.prototype, 'addColorStop', function (this: CanvasGradient, offset: number, color: string) {
     addColorStop.call(this, offset, canvasAccent(color));
-  };
+  });
 }
 
 function redrawSpotifyCanvases(): void {
