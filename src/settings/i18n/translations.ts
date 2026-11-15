@@ -8,6 +8,9 @@ export const settingsCopy: any = {
   addImages: "Add images",
   libraryEmpty: "No images yet. Add some to get started.",
   removeImage: "Remove",
+  mediaLibrary: "Media Library",
+  addMedia: "Add images or videos",
+  mediaEmpty: "No images or videos yet. Add some to get started.",
   enterUrl: "Enter image URL...",
   resetAllSettings: "Reset all Settings",
   searchPlaceholder: "Search settings...",
@@ -221,7 +224,7 @@ export const settingsCopy: any = {
     accentSource: "Which image the dynamic colors are taken from: whatever the background currently shows (playlist, your own image or URL), or always the song cover.",
     accentSatBoost: "How much to intensify the colors taken from the cover art (Dynamic mode only).",
     accentLightBoost: "How much to brighten the accent taken from the cover art (Dynamic mode only).",
-    background: "Dynamic = blurred current cover, Animated = moving gradient, Playlist = the playlist's image, Custom = your own image, URL = an image link.",
+    background: "Dynamic = blurred current cover, Animated = moving gradient, Playlist = the playlist's image, Custom = your own image or video, URL = an image link.",
     animatedBackground: "Subtly animates the custom, URL or playlist background.",
     hiResCover: "Loads the largest cover the CDN has, so the backdrop stays sharp on a large window. Turn it off to load pictures faster and avoid the delay on a track change.",
     artistBackground: "What to show behind artist pages: the theme default, nothing, your own image, or an image URL.",
@@ -352,7 +355,7 @@ const liquifyTranslations: Record<string, any> = {
       accentSource: "Woher die dynamischen Farben kommen: vom aktuell angezeigten Hintergrund (Playlist, eigenes Bild oder URL) oder immer vom Song-Cover.",
       accentSatBoost: "Wie stark Farben aus dem Cover intensiviert werden (nur dynamischer Modus).",
       accentLightBoost: "Wie stark der Akzent aus dem Cover aufgehellt wird (nur dynamischer Modus).",
-      background: "Dynamisch = verschwommenes aktuelles Cover, Animiert = bewegter Verlauf, Playlist = Playlist-Bild, Benutzerdefiniert = eigenes Bild, URL = Bildlink.",
+      background: "Dynamisch = verschwommenes aktuelles Cover, Animiert = bewegter Verlauf, Playlist = Playlist-Bild, Benutzerdefiniert = eigenes Bild oder Video, URL = Bildlink.",
       animatedBackground: "Animiert benutzerdefinierte, URL- oder Playlist-Hintergründe dezent.",
       hiResCover: "Lädt das größte verfügbare Cover, damit der Hintergrund auch im großen Fenster scharf bleibt. Deaktivieren, damit Bilder schneller laden und die Verzögerung beim Songwechsel entfällt.",
       bodyFont: "Ersetzt Spotifys Schriftart überall außer bei Überschriften und Titeln.",
@@ -439,7 +442,7 @@ const liquifyTranslations: Record<string, any> = {
       accentSource: "Откуда берутся динамические цвета: из текущего фона (плейлист, своё изображение или URL) или всегда из обложки трека.",
       accentSatBoost: "Насколько усиливать цвета из обложки (только динамический режим).",
       accentLightBoost: "Насколько осветлять акцент из обложки (только динамический режим).",
-      background: "Динамический = размытая текущая обложка, анимированный = движущийся градиент, плейлист = изображение плейлиста, пользовательский = свое изображение, URL = ссылка.",
+      background: "Динамический = размытая текущая обложка, анимированный = движущийся градиент, плейлист = изображение плейлиста, пользовательский = свое изображение или видео, URL = ссылка.",
       animatedBackground: "Ненавязчиво анимирует пользовательский, URL или фон плейлиста.",
       artistBackground: "Что показывать за страницами артистов: фон темы, ничего, свое изображение или URL.",
       artistScrollBlur: "Размытие изображения заголовка артиста при прокрутке вниз.",
@@ -520,7 +523,7 @@ const liquifyTranslations: Record<string, any> = {
       accentSource: "De dónde se toman los colores dinámicos: del fondo actual (playlist, tu imagen o URL) o siempre de la portada.",
       accentSatBoost: "Cuánto intensificar los colores tomados de la portada (solo modo Dinámico).",
       accentLightBoost: "Cuánto aclarar el acento tomado de la portada (solo modo Dinámico).",
-      background: "Dinámico = portada actual desenfocada, Animado = degradado en movimiento, Playlist = imagen de la playlist, Personalizado = imagen propia, URL = enlace de imagen.",
+      background: "Dinámico = portada actual desenfocada, Animado = degradado en movimiento, Playlist = imagen de la playlist, Personalizado = imagen o vídeo propio, URL = enlace de imagen.",
       animatedBackground: "Anima suavemente el fondo personalizado, URL o de playlist.",
       artistBackground: "Qué mostrar detrás de páginas de artista: fondo del tema, nada, imagen propia o URL.",
       artistScrollBlur: "Desenfoque de la imagen del encabezado de artista al desplazarte.",
@@ -601,7 +604,7 @@ const liquifyTranslations: Record<string, any> = {
       accentSource: "De onde vêm as cores dinâmicas: do fundo atual (playlist, sua imagem ou URL) ou sempre da capa da música.",
       accentSatBoost: "Quanto intensificar as cores tiradas da capa (somente modo Dinâmico).",
       accentLightBoost: "Quanto clarear o acento tirado da capa (somente modo Dinâmico).",
-      background: "Dinâmico = capa atual desfocada, Animado = gradiente em movimento, Playlist = imagem da playlist, Personalizado = sua imagem, URL = link de imagem.",
+      background: "Dinâmico = capa atual desfocada, Animado = gradiente em movimento, Playlist = imagem da playlist, Personalizado = sua imagem ou vídeo, URL = link de imagem.",
       animatedBackground: "Anima suavemente o fundo personalizado, de URL ou de playlist.",
       artistBackground: "O que mostrar atrás das páginas de artista: padrão do tema, nada, sua imagem ou URL.",
       artistScrollBlur: "Desfoque da imagem do cabeçalho do artista ao rolar para baixo.",
@@ -682,7 +685,7 @@ const liquifyTranslations: Record<string, any> = {
       accentSource: "Dinamik renklerin nereden alınacağı: mevcut arka plandan (playlist, kendi resmin veya URL) ya da her zaman şarkı kapağından.",
       accentSatBoost: "Kapaktan alınan renklerin ne kadar güçlendirileceği (yalnızca Dinamik mod).",
       accentLightBoost: "Kapaktan alınan vurgu renginin ne kadar aydınlatılacağı (yalnızca Dinamik mod).",
-      background: "Dinamik = bulanık mevcut kapak, Animasyonlu = hareketli gradyan, Playlist = playlist görseli, Özel = kendi görselin, URL = görsel bağlantısı.",
+      background: "Dinamik = bulanık mevcut kapak, Animasyonlu = hareketli gradyan, Playlist = playlist görseli, Özel = kendi görselin veya videon, URL = görsel bağlantısı.",
       animatedBackground: "Özel, URL veya playlist arka planını hafifçe animasyonlandırır.",
       artistBackground: "Sanatçı sayfalarının arkasında ne gösterileceği: tema varsayılanı, hiçbir şey, kendi görselin veya URL.",
       artistScrollBlur: "Aşağı kaydırırken sanatçı başlık görselinin bulanıklığı.",
@@ -816,7 +819,7 @@ function translateTooltips(lang: string): any {
       accentSource: "डायनामिक रंग कहाँ से लिए जाएँ: वर्तमान बैकग्राउंड से (प्लेलिस्ट, अपनी छवि या URL) या हमेशा गीत कवर से.",
       accentSatBoost: "कवर से लिए गए रंगों को कितना तीव्र करना है (केवल डायनामिक मोड).",
       accentLightBoost: "कवर से लिए गए एक्सेंट को कितना चमकाना है (केवल डायनामिक मोड).",
-      background: "डायनामिक = धुंधला वर्तमान कवर, एनिमेटेड = चलता ग्रेडिएंट, प्लेलिस्ट = प्लेलिस्ट छवि, कस्टम = अपनी छवि, URL = छवि लिंक.",
+      background: "डायनामिक = धुंधला वर्तमान कवर, एनिमेटेड = चलता ग्रेडिएंट, प्लेलिस्ट = प्लेलिस्ट छवि, कस्टम = अपनी छवि या वीडियो, URL = छवि लिंक.",
       animatedBackground: "कस्टम, URL या प्लेलिस्ट बैकग्राउंड को हल्का एनिमेट करता है.",
       artistBackground: "आर्टिस्ट पेजों के पीछे क्या दिखे: थीम डिफ़ॉल्ट, कुछ नहीं, अपनी छवि या URL.",
       artistScrollBlur: "नीचे स्क्रॉल करते समय आर्टिस्ट हेडर छवि की धुंध.",
@@ -846,7 +849,7 @@ function translateTooltips(lang: string): any {
       accentSource: "Varifrån de dynamiska färgerna tas: från den aktuella bakgrunden (playlist, egen bild eller URL) eller alltid från låtomslaget.",
       accentSatBoost: "Hur mycket färger från omslaget ska förstärkas (endast dynamiskt läge).",
       accentLightBoost: "Hur mycket accentfärgen från omslaget ska ljusas upp (endast dynamiskt läge).",
-      background: "Dynamisk = suddigt aktuellt omslag, Animerad = rörlig gradient, Playlist = playlistbild, Anpassad = egen bild, URL = bildlänk.",
+      background: "Dynamisk = suddigt aktuellt omslag, Animerad = rörlig gradient, Playlist = playlistbild, Anpassad = egen bild eller video, URL = bildlänk.",
       animatedBackground: "Animerar anpassad, URL- eller playlistbakgrund subtilt.",
       artistBackground: "Vad som visas bakom artistsidor: temats standard, inget, egen bild eller bild-URL.",
       artistScrollBlur: "Oskärpa för artistens headerbild när du scrollar nedåt.",
@@ -876,7 +879,7 @@ function translateTooltips(lang: string): any {
       accentSource: "ダイナミックカラーの取得元: 現在の背景 (プレイリスト、自分の画像、URL) か、常に曲のカバー。",
       accentSatBoost: "カバーから取得した色をどれだけ強めるか（ダイナミックモードのみ）。",
       accentLightBoost: "カバーから取得したアクセントをどれだけ明るくするか（ダイナミックモードのみ）。",
-      background: "ダイナミック = 現在のカバーをぼかす、アニメーション = 動くグラデーション、プレイリスト = プレイリスト画像、カスタム = 自分の画像、URL = 画像リンク。",
+      background: "ダイナミック = 現在のカバーをぼかす、アニメーション = 動くグラデーション、プレイリスト = プレイリスト画像、カスタム = 自分の画像または動画、URL = 画像リンク。",
       animatedBackground: "カスタム、URL、プレイリスト背景をさりげなくアニメーションします。",
       artistBackground: "アーティストページの背後に表示するもの: テーマ標準、なし、自分の画像、画像URL。",
       artistScrollBlur: "下へスクロールするときのアーティストヘッダー画像のぼかし。",
@@ -906,7 +909,7 @@ function translateTooltips(lang: string): any {
       accentSource: "动态颜色的取色来源：当前背景（播放列表、自定义图片或 URL），或始终使用歌曲封面。",
       accentSatBoost: "增强从封面提取的颜色强度（仅动态模式）。",
       accentLightBoost: "提高从封面提取的强调色亮度（仅动态模式）。",
-      background: "动态 = 模糊当前封面，动画 = 移动渐变，播放列表 = 播放列表图片，自定义 = 自己的图片，URL = 图片链接。",
+      background: "动态 = 模糊当前封面，动画 = 移动渐变，播放列表 = 播放列表图片，自定义 = 自己的图片或视频，URL = 图片链接。",
       animatedBackground: "轻微动画化自定义、URL 或播放列表背景。",
       artistBackground: "艺术家页面背后显示什么：主题默认、无、自定义图片或图片 URL。",
       artistScrollBlur: "向下滚动时艺术家标题图片的模糊程度。",
@@ -936,7 +939,7 @@ function translateTooltips(lang: string): any {
       accentSource: "동적 색상을 가져올 이미지: 현재 배경(플레이리스트, 내 이미지 또는 URL) 또는 항상 곡 커버.",
       accentSatBoost: "커버에서 가져온 색상을 얼마나 강하게 할지 설정합니다(동적 모드만).",
       accentLightBoost: "커버에서 가져온 강조색을 얼마나 밝게 할지 설정합니다(동적 모드만).",
-      background: "동적 = 현재 커버 흐림, 애니메이션 = 움직이는 그라데이션, 플레이리스트 = 플레이리스트 이미지, 사용자 지정 = 내 이미지, URL = 이미지 링크.",
+      background: "동적 = 현재 커버 흐림, 애니메이션 = 움직이는 그라데이션, 플레이리스트 = 플레이리스트 이미지, 사용자 지정 = 내 이미지 또는 동영상, URL = 이미지 링크.",
       animatedBackground: "사용자 지정, URL 또는 플레이리스트 배경을 은은하게 애니메이션합니다.",
       artistBackground: "아티스트 페이지 뒤에 표시할 항목: 테마 기본값, 없음, 내 이미지 또는 이미지 URL.",
       artistScrollBlur: "아래로 스크롤할 때 아티스트 헤더 이미지의 흐림 정도.",
@@ -975,7 +978,7 @@ const LATE_STRINGS: Record<string, any> = {
     sections: { language: "Язык" },
     subSections: { kawarp: "Анимированный фон", sidebars: "Боковые панели", vinyl: "Винил" },
     vinyl: { npv: "Винил в боковой панели:", playbar: "Винил в плеере:", cinema: "Винил в кинорежиме:", miniPlayer: "Винил в мини-плеере:", speed: "Секунд на оборот:" },
-    dropdown: { engineTiles: "Классический" },
+    dropdown: { engineKawarp: "Kawarp (WebGL)", engineTiles: "Классический" },
     ui: { leftSidebarBlur: "Размытие за левой панелью:", leftSidebarBlurAmount: "Размытие левой панели (px):", rightSidebarBlur: "Размытие за правой панелью:", rightSidebarBlurAmount: "Размытие правой панели (px):", localFilesTransparent: "Прозрачная карточка локальных файлов:" },
     tooltips: {
       language: "«Как в Spotify» использует язык приложения; «Пользовательский» закрепляет выбранный вами язык.",
@@ -994,7 +997,7 @@ const LATE_STRINGS: Record<string, any> = {
     sections: { language: "Idioma" },
     subSections: { kawarp: "Fondo animado", sidebars: "Barras laterales", vinyl: "Vinilo" },
     vinyl: { npv: "Vinilo en la barra lateral:", playbar: "Vinilo en el reproductor:", cinema: "Vinilo en modo cine:", miniPlayer: "Vinilo en el minirreproductor:", speed: "Segundos por vuelta:" },
-    dropdown: { engineTiles: "Clásico" },
+    dropdown: { engineKawarp: "Kawarp (WebGL)", engineTiles: "Clásico" },
     ui: { leftSidebarBlur: "Desenfoque tras la barra izquierda:", leftSidebarBlurAmount: "Desenfoque barra izquierda (px):", rightSidebarBlur: "Desenfoque tras la barra derecha:", rightSidebarBlurAmount: "Desenfoque barra derecha (px):", localFilesTransparent: "Tarjeta de archivos locales transparente:" },
     tooltips: {
       language: "«Seguir a Spotify» usa el idioma de la aplicación; «Personalizado» fija el panel en el que elijas.",
@@ -1013,7 +1016,7 @@ const LATE_STRINGS: Record<string, any> = {
     sections: { language: "Idioma" },
     subSections: { kawarp: "Fundo animado", sidebars: "Barras laterais", vinyl: "Vinil" },
     vinyl: { npv: "Vinil na barra lateral:", playbar: "Vinil no player:", cinema: "Vinil no modo cinema:", miniPlayer: "Vinil no mini player:", speed: "Segundos por volta:" },
-    dropdown: { engineTiles: "Clássico" },
+    dropdown: { engineKawarp: "Kawarp (WebGL)", engineTiles: "Clássico" },
     ui: { leftSidebarBlur: "Desfoque atrás da barra esquerda:", leftSidebarBlurAmount: "Desfoque da barra esquerda (px):", rightSidebarBlur: "Desfoque atrás da barra direita:", rightSidebarBlurAmount: "Desfoque da barra direita (px):", localFilesTransparent: "Cartão de arquivos locais transparente:" },
     tooltips: {
       language: "«Seguir o Spotify» usa o idioma do aplicativo; «Personalizado» fixa o painel no que você escolher.",
@@ -1032,7 +1035,7 @@ const LATE_STRINGS: Record<string, any> = {
     sections: { language: "Dil" },
     subSections: { kawarp: "Animasyonlu arka plan", sidebars: "Kenar çubukları", vinyl: "Plak" },
     vinyl: { npv: "Kenar çubuğunda plak:", playbar: "Oynatıcıda plak:", cinema: "Sinema modunda plak:", miniPlayer: "Mini oynatıcıda plak:", speed: "Tur başına saniye:" },
-    dropdown: { engineTiles: "Klasik" },
+    dropdown: { engineKawarp: "Kawarp (WebGL)", engineTiles: "Klasik" },
     ui: { leftSidebarBlur: "Sol kenar çubuğunun arkasını bulanıklaştır:", leftSidebarBlurAmount: "Sol kenar çubuğu bulanıklığı (px):", rightSidebarBlur: "Sağ kenar çubuğunun arkasını bulanıklaştır:", rightSidebarBlurAmount: "Sağ kenar çubuğu bulanıklığı (px):", localFilesTransparent: "Şeffaf yerel dosyalar kartı:" },
     tooltips: {
       language: "«Spotify'ı takip et» uygulamanın dilini kullanır; «Özel» paneli seçtiğiniz dile sabitler.",
@@ -1323,6 +1326,23 @@ const LYRICS_CARD_STRINGS: Record<string, any> = {
 
 for (const code of Object.keys(LYRICS_CARD_STRINGS)) {
   liquifyTranslations[code] = deepMerge(liquifyTranslations[code], LYRICS_CARD_STRINGS[code]);
+}
+
+const MEDIA_LIBRARY_STRINGS: Record<string, any> = {
+  de: { mediaLibrary: "Medienbibliothek", addMedia: "Bilder oder Videos hinzufügen", mediaEmpty: "Noch keine Bilder oder Videos. Füge welche hinzu, um zu starten." },
+  ru: { mediaLibrary: "Медиатека", addMedia: "Добавить изображения или видео", mediaEmpty: "Пока нет изображений и видео. Добавьте, чтобы начать." },
+  es: { mediaLibrary: "Biblioteca multimedia", addMedia: "Añadir imágenes o vídeos", mediaEmpty: "Aún no hay imágenes ni vídeos. Añade algunos para empezar." },
+  pt: { mediaLibrary: "Biblioteca de mídia", addMedia: "Adicionar imagens ou vídeos", mediaEmpty: "Ainda sem imagens ou vídeos. Adicione alguns para começar." },
+  tr: { mediaLibrary: "Medya kitaplığı", addMedia: "Görsel veya video ekle", mediaEmpty: "Henüz görsel veya video yok. Başlamak için birkaç tane ekleyin." },
+  hi: { mediaLibrary: "मीडिया लाइब्रेरी", addMedia: "छवियाँ या वीडियो जोड़ें", mediaEmpty: "अभी कोई छवि या वीडियो नहीं. शुरू करने के लिए कुछ जोड़ें." },
+  sv: { mediaLibrary: "Mediebibliotek", addMedia: "Lägg till bilder eller videor", mediaEmpty: "Inga bilder eller videor än. Lägg till några för att komma igång." },
+  ja: { mediaLibrary: "メディアライブラリ", addMedia: "画像または動画を追加", mediaEmpty: "画像や動画がまだありません。追加して始めましょう。" },
+  zh: { mediaLibrary: "媒体库", addMedia: "添加图片或视频", mediaEmpty: "还没有图片或视频。添加一些即可开始。" },
+  ko: { mediaLibrary: "미디어 라이브러리", addMedia: "이미지 또는 동영상 추가", mediaEmpty: "아직 이미지나 동영상이 없습니다. 추가해서 시작하세요." },
+};
+
+for (const code of Object.keys(MEDIA_LIBRARY_STRINGS)) {
+  liquifyTranslations[code] = deepMerge(liquifyTranslations[code], MEDIA_LIBRARY_STRINGS[code]);
 }
 
 export const LANGUAGE_KEY = "liquify-language";

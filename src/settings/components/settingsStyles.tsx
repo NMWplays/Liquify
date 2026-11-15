@@ -7,6 +7,7 @@ import {
   LibraryTarget,
   addImages,
   deleteImage,
+  isVideoBlob,
   librarySelectedKey,
   listImages,
   selectImage,
@@ -496,7 +497,8 @@ export function ensureSettingsUiStyle() {
       transition: transform 0.28s cubic-bezier(0.3, 2.25, 0.32, 1);
     }
     .liquifyLibraryTile.isHovered { transform: scale(1.02); }
-    .liquifyLibraryTile img {
+    .liquifyLibraryTile img,
+    .liquifyLibraryTile video {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -1345,6 +1347,8 @@ export function BackgroundLibrary(props: {
   target?: LibraryTarget;
 }) {
   const target: LibraryTarget = props.target ?? "background";
+  const allowVideo = target === "background";
+  const visible = (all: LibraryImage[]) => (allowVideo ? all : all.filter((item) => !isVideoBlob(item.blob)));
   const selectedKey = librarySelectedKey(target);
   const [items, setItems] = React.useState([] as LibraryImage[]);
   const [selected, setSelected] = React.useState(() => localStorage.getItem(selectedKey) || "");
@@ -1359,7 +1363,7 @@ export function BackgroundLibrary(props: {
   });
 
   const reload = React.useCallback(() => {
-    void listImages().then(setItems);
+    void listImages().then((all) => setItems(visible(all)));
   }, []);
 
   React.useEffect(() => {
@@ -1430,6 +1434,16 @@ export function BackgroundLibrary(props: {
   }, [props.open]);
 
   React.useEffect(() => {
+    const grid = gridRef.current as HTMLElement | null;
+    if (!grid) return;
+    for (const video of Array.from(grid.querySelectorAll("video"))) {
+      const id = (video.closest(".liquifyLibraryTile") as HTMLElement | null)?.dataset.id;
+      if (id && id === hover?.id) void video.play().catch(() => {});
+      else video.pause();
+    }
+  }, [hover?.id, items]);
+
+  React.useEffect(() => {
     const on = props.open || closing;
     document.documentElement.classList.toggle("liquify-library-open", on);
     return () => document.documentElement.classList.remove("liquify-library-open");
@@ -1473,7 +1487,7 @@ export function BackgroundLibrary(props: {
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept={allowVideo ? "image/*,video/*" : "image/*"}
             multiple
             style={{ display: "none" }}
             onChange={async (e: any) => {
@@ -1482,7 +1496,7 @@ export function BackgroundLibrary(props: {
               if (!files.length) return;
               await addImages(files);
               input.value = "";
-              const next = await listImages();
+              const next = visible(await listImages());
               setItems(next);
               if (!localStorage.getItem(selectedKey) && next[0]) choose(next[0].id);
             }}
@@ -1503,7 +1517,11 @@ export function BackgroundLibrary(props: {
               style={{ "--i": Math.min(i, 12) } as any}
               onClick={() => choose(item.id)}
             >
-              <img src={urls[i]} alt={item.name} />
+              {isVideoBlob(item.blob) ? (
+                <video src={urls[i]} muted loop playsInline preload="metadata" />
+              ) : (
+                <img src={urls[i]} alt={item.name} />
+              )}
             </div>
           ))}
         </div>

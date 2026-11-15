@@ -954,7 +954,7 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
                 className="liquifyControlSurface liquifyActionBtn"
                 onClick={() => openLibrary("background")}
               >
-                {t.openLibrary || "Image Library"}
+                {t.mediaLibrary || "Media Library"}
               </button>
             )}
             {bgMode === "url" && (
@@ -1039,7 +1039,13 @@ export function SettingsContent(props: { onClose: () => void; artistCtrl: any })
           open={libraryOpen}
           target={libraryFor}
           onClose={() => setLibraryOpen(false)}
-          labels={{
+          labels={libraryFor === "background" ? {
+            title: t.mediaLibrary || "Media Library",
+            add: t.addMedia || "Add images or videos",
+            empty: t.mediaEmpty || "No images or videos yet. Add some to get started.",
+            remove: t.removeImage || "Remove",
+            close: t.close || "Close",
+          } : {
             title: t.imageLibrary || "Image Library",
             add: t.addImages || "Add images",
             empty: t.libraryEmpty || "No images yet. Add some to get started.",

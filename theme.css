@@ -94,6 +94,16 @@
   opacity: 1;
 }
 
+.liquify-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .liquify-animated-bg:not(.active) .liquify-animated-tile {
   animation-play-state: paused;
 }

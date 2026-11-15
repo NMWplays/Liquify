@@ -1,6 +1,6 @@
 import { KawarpBackdrop, applyKawarpAppearance } from './settings/features/kawarpBackground';
 import { getBgEngine, isHiResCoverOn } from './settings/features/backgroundAppearance';
-import { getLibraryUrl } from './settings/features/backgroundLibrary';
+import { getLibraryUrl, isLibraryVideo } from './settings/features/backgroundLibrary';
 import { startAccent, syncAccent } from './settings/features/accent';
 import { paletteColor, sampleImageColor } from './settings/features/accentColor';
 
@@ -15,7 +15,99 @@ type Backdrop = {
   image: string | null;
   url: string | null;
   sampleUrl: string | null;
+  video: boolean;
 };
+
+type Media = { image: string; video: string | null };
+
+const VIDEO_CLASS = 'liquify-bg-video';
+const posters = new Map<string, string>();
+const postersPending = new Set<string>();
+
+function posterOf(url: string): string | null {
+  const ready = posters.get(url);
+  if (ready) return ready;
+  if (postersPending.has(url)) return null;
+  postersPending.add(url);
+  const video = document.createElement('video');
+  video.muted = true;
+  video.preload = 'auto';
+  const done = (poster: string) => {
+    postersPending.delete(url);
+    video.removeAttribute('src');
+    video.load();
+    if (!poster) return;
+    posters.set(url, poster);
+    window.dispatchEvent(new Event('liquifyBackgroundChange'));
+  };
+  video.addEventListener('loadeddata', () => {
+    video.currentTime = Math.min(1, (video.duration || 0) / 2);
+  }, { once: true });
+  video.addEventListener('seeked', () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      canvas.getContext('2d')?.drawImage(video, 0, 0, 64, 64);
+      done(canvas.toDataURL('image/jpeg', 0.8));
+    } catch {
+      done('');
+    }
+  }, { once: true });
+  video.addEventListener('error', () => done(''), { once: true });
+  video.src = url;
+  return null;
+}
+
+const videosReady = new Set<string>();
+
+function whenVideoReady(url: string): Promise<void> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.preload = 'auto';
+    const end = () => {
+      videosReady.add(url);
+      video.removeAttribute('src');
+      video.load();
+      resolve();
+    };
+    video.addEventListener('loadeddata', end, { once: true });
+    video.addEventListener('error', end, { once: true });
+    video.src = url;
+  });
+}
+
+function setMedia(el: HTMLElement, media: Media): void {
+  let video = el.querySelector<HTMLVideoElement>(`:scope > video.${VIDEO_CLASS}`);
+  if (media.video) {
+    el.style.backgroundImage = 'none';
+    if (!video) {
+      video = document.createElement('video');
+      video.className = VIDEO_CLASS;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      el.appendChild(video);
+    }
+    if (video.getAttribute('src') !== media.video) video.src = media.video;
+    return;
+  }
+  if (video) {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    video.remove();
+  }
+  el.style.backgroundImage = media.image;
+}
+
+function playMedia(el: HTMLElement, on: boolean): void {
+  const video = el.querySelector<HTMLVideoElement>(`:scope > video.${VIDEO_CLASS}`);
+  if (!video) return;
+  if (on) void video.play().catch(() => {});
+  else video.pause();
+}
 
 const IMAGE_SIZE_UPGRADES: Record<string, string> = {
   ab67616d00004851: 'ab67616d0000b273',
@@ -123,8 +215,12 @@ function whenDecoded(url: string): Promise<void> {
 function crossfader(bottom: HTMLElement[], top: HTMLElement[]) {
   let shown: HTMLElement[] | null = null;
   let busy: AbortController | null = null;
-  let queued: string | null = null;
-  const set = (els: HTMLElement[], on: boolean) => els.forEach((el) => el.classList.toggle('active', on));
+  let queued: Media | null = null;
+  const set = (els: HTMLElement[], on: boolean) =>
+    els.forEach((el) => {
+      el.classList.toggle('active', on);
+      playMedia(el, on);
+    });
 
   function after(el: HTMLElement, then: () => void): void {
     const ctl = new AbortController();
@@ -135,9 +231,9 @@ function crossfader(bottom: HTMLElement[], top: HTMLElement[]) {
       busy = null;
       then();
       if (queued !== null) {
-        const image = queued;
+        const media = queued;
         queued = null;
-        show(image);
+        show(media);
       }
     };
     void getComputedStyle(el).opacity;
@@ -150,15 +246,15 @@ function crossfader(bottom: HTMLElement[], top: HTMLElement[]) {
     el.addEventListener('transitioncancel', onEnd, { signal: ctl.signal });
   }
 
-  function show(image: string): void {
+  function show(media: Media): void {
     if (busy) {
-      queued = image;
+      queued = media;
       return;
     }
     const prev = shown;
     const next = prev === bottom ? top : bottom;
     shown = next;
-    next.forEach((el) => { el.style.backgroundImage = image; });
+    next.forEach((el) => setMedia(el, media));
     if (!prev) {
       set(next, true);
       after(next[0], () => {});
@@ -304,17 +400,17 @@ export async function startBackground(): Promise<void> {
 
   let wantedKey: string | null = null;
 
-  function render(kind: 'static' | 'animated', image: string | null, url: string | null): void {
+  function render(kind: 'static' | 'animated', image: string | null, url: string | null, video = false): void {
     if (!image) return;
     const engine = getBgEngine();
-    const key = `${kind}|${engine}|${image}`;
+    const key = `${kind}|${engine}|${video ? 'video' : 'image'}|${image}`;
     if (key === lastRenderKey) return;
     const viaKawarp = kind === 'animated' && engine === 'kawarp';
-    if (url && !viaKawarp && !decoded.has(url)) {
+    if (url && !viaKawarp && (video ? !videosReady.has(url) : !decoded.has(url))) {
       if (wantedKey === key) return;
       wantedKey = key;
-      whenDecoded(url).then(() => {
-        if (wantedKey === key) render(kind, image, url);
+      (video ? whenVideoReady(url) : whenDecoded(url)).then(() => {
+        if (wantedKey === key) render(kind, image, url, video);
       });
       return;
     }
@@ -330,21 +426,22 @@ export async function startBackground(): Promise<void> {
       layers.hide();
       hideTiles();
       kawarp.setActive(true);
-      kawarp.show(url);
+      kawarp.show(url, video);
       return;
     }
 
     kawarp.setActive(false);
 
+    const media: Media = { image, video: video ? url : null };
     if (kind === 'animated') {
       layers.hide();
       animatedContainer.classList.add('active');
-      tiles.show(image);
+      tiles.show(media);
       return;
     }
 
     hideTiles();
-    layers.show(image);
+    layers.show(media);
   }
 
   function resolveBackdrop(): Backdrop {
@@ -354,13 +451,13 @@ export async function startBackground(): Promise<void> {
     const customAnimated = localStorage.getItem('liquify-bg-custom-animated') === 'on';
     const customKind: 'static' | 'animated' = customAnimated ? 'animated' : 'static';
     const coverUrl = getCoverUrl();
-    const from = (kind: 'static' | 'animated', url: string | null): Backdrop =>
-      ({ kind, image: url ? cssImage(url) : null, url, sampleUrl: url });
+    const from = (kind: 'static' | 'animated', url: string | null, video = false): Backdrop =>
+      ({ kind, image: url ? cssImage(url) : null, url, sampleUrl: url && video ? posterOf(url) : url, video });
 
     let result: Backdrop;
-    if (bgMode === 'custom' && customImage) result = from(customKind, customImage);
+    if (bgMode === 'custom' && customImage) result = from(customKind, customImage, isLibraryVideo());
     else if (bgMode === 'url' && bgUrl) {
-      result = { kind: customKind, image: cssImage(bgUrl), url: bgUrl, sampleUrl: null };
+      result = { kind: customKind, image: cssImage(bgUrl), url: bgUrl, sampleUrl: null, video: false };
     } else if (bgMode === 'playlist') {
       const playlistCover = getResolvedContextCover();
       const isPlaylist = getContextUri().includes(':playlist:');
@@ -373,14 +470,14 @@ export async function startBackground(): Promise<void> {
     }
 
     if (!result.image && lastRenderKey === null) {
-      return { kind: 'static', image: EMPTY_BACKDROP, url: null, sampleUrl: null };
+      return { kind: 'static', image: EMPTY_BACKDROP, url: null, sampleUrl: null, video: false };
     }
     return result;
   }
 
   function updateBackgroundAndAccent(): void {
-    const { kind, image, url, sampleUrl } = resolveBackdrop();
-    render(kind, image, url);
+    const { kind, image, url, sampleUrl, video } = resolveBackdrop();
+    render(kind, image, url, video);
     syncAccent(sampleUrl, baseCoverUrlOf(SpotiKit.Player?.track));
   }
 

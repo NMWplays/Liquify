@@ -9,6 +9,10 @@ const LEGACY_ARTIST_IMAGE_KEY = 'liquify-artist-bg-image';
 
 export type LibraryImage = { id: string; name: string; added: number; blob: Blob };
 
+export function isVideoBlob(blob: Blob | null | undefined): boolean {
+  return !!blob && blob.type.startsWith('video/');
+}
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
@@ -47,7 +51,7 @@ export async function listImages(): Promise<LibraryImage[]> {
 
 export async function addImages(files: File[]): Promise<void> {
   for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) continue;
     const entry: LibraryImage = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       name: file.name,
@@ -70,10 +74,12 @@ export async function deleteImage(id: string): Promise<void> {
 function createSelection(key: string, legacyKey: string, changeEvent: string) {
   let currentUrl: string | null = null;
   let currentId = '';
+  let currentVideo = false;
 
   function revoke(): void {
     if (currentUrl && currentUrl.startsWith('blob:')) URL.revokeObjectURL(currentUrl);
     currentUrl = null;
+    currentVideo = false;
   }
 
   async function refresh(): Promise<void> {
@@ -94,6 +100,7 @@ function createSelection(key: string, legacyKey: string, changeEvent: string) {
       revoke();
       currentId = id;
       currentUrl = entry?.blob ? URL.createObjectURL(entry.blob) : null;
+      currentVideo = isVideoBlob(entry?.blob);
     } catch {
       revoke();
       currentId = '';
@@ -105,6 +112,7 @@ function createSelection(key: string, legacyKey: string, changeEvent: string) {
     key,
     refresh,
     url: () => currentUrl,
+    isVideo: () => currentVideo,
     select(id: string): void {
       localStorage.setItem(key, id);
       void refresh();
@@ -123,6 +131,10 @@ export function librarySelectedKey(target: LibraryTarget): string {
 
 export function getLibraryUrl(): string | null {
   return background.url();
+}
+
+export function isLibraryVideo(): boolean {
+  return background.isVideo();
 }
 
 export function getArtistLibraryUrl(): string | null {

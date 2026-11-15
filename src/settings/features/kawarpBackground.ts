@@ -1,6 +1,7 @@
 import { Kawarp } from '@kawarp/core';
 import { clamp, readNum } from '../shared';
 import { readBackgroundAppearance } from './backgroundAppearance';
+import { onStop } from '../../lifecycle/runtime';
 
 export const KAWARP_KEYS = {
   warp: 'liquify-kawarp-warp',
@@ -34,6 +35,7 @@ const MAX_KAWARP_PX = 1280;
 const MAX_DPR = 1.5;
 const RESIZE_SETTLE_MS = 160;
 const MAX_FRAME_STEP_MS = 250;
+const VIDEO_FPS = 30;
 
 function read(key: KawarpKey): number {
   const range = KAWARP_RANGES[key];
@@ -95,12 +97,32 @@ export class KawarpBackdrop {
   private lastFrame = 0;
   private clock = 0;
   private speed = 1;
+  private video: HTMLVideoElement | null = null;
+  private videoFrame = 0;
 
   constructor() {
     this.el = document.createElement('div');
     this.el.className = 'liquify-kawarp-bg';
     this.el.setAttribute('aria-hidden', 'true');
-    document.addEventListener('visibilitychange', () => this.syncLoop());
+    document.addEventListener('visibilitychange', () => {
+      this.syncLoop();
+      this.syncVideo();
+    });
+    onStop(() => this.dispose());
+  }
+
+  private dispose(): void {
+    this.stopVideo();
+    this.token++;
+    window.clearTimeout(this.swapTimer);
+    window.clearTimeout(this.resizeTimer);
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = 0;
+    this.live.clear();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    for (const layer of this.layers) releaseKawarp(layer.canvas, layer.renderer);
+    this.layers = [];
   }
 
   canRender(url: string | null): boolean {
@@ -112,6 +134,7 @@ export class KawarpBackdrop {
     this.active = active;
     this.el.classList.toggle('active', active);
     this.syncLoop();
+    this.syncVideo();
   }
 
   applyOptions(): void {
@@ -124,12 +147,46 @@ export class KawarpBackdrop {
     for (const layer of this.layers) layer.renderer.setOptions(options);
   }
 
-  show(url: string): void {
+  show(url: string, video = false): void {
     if (!this.ensureLayers()) return;
     this.applyOptions();
-    if (url === this.lastUrl) return;
-    this.lastUrl = url;
-    void this.swap(url);
+    const key = video ? `video:${url}` : url;
+    if (key === this.lastUrl) return;
+    this.lastUrl = key;
+    void this.swap(url, video);
+  }
+
+  private syncVideo(): void {
+    const video = this.video;
+    if (!video) return;
+    if (this.active && !document.hidden) void video.play().catch(() => {});
+    else video.pause();
+  }
+
+  private stopVideo(): void {
+    const video = this.video;
+    this.video = null;
+    if (!video) return;
+    if (this.videoFrame) video.cancelVideoFrameCallback(this.videoFrame);
+    this.videoFrame = 0;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  }
+
+  private feedVideo(video: HTMLVideoElement, renderer: Kawarp): void {
+    let last = 0;
+    const step = (now: number) => {
+      if (this.video !== video) return;
+      this.videoFrame = video.requestVideoFrameCallback(step);
+      if (now - last < 1000 / VIDEO_FPS - 4) return;
+      last = now;
+      try {
+        renderer.loadImageElement(video);
+      } catch {
+      }
+    };
+    this.videoFrame = video.requestVideoFrameCallback(step);
   }
 
 private syncLoop(): void {
@@ -182,25 +239,38 @@ private ensureLayers(): boolean {
     return true;
   }
 
-  private async swap(url: string): Promise<void> {
+  private async swap(url: string, video = false): Promise<void> {
     const token = ++this.token;
+    this.stopVideo();
 
-    let source: HTMLImageElement;
+    let source: HTMLImageElement | HTMLVideoElement;
     try {
-      source = await decodeImage(url);
+      source = video ? await openVideo(url) : await decodeImage(url);
     } catch {
       this.failedUrls.add(url);
       if (token === this.token) this.lastUrl = '';
       window.dispatchEvent(new Event('liquifyBackgroundChange'));
       return;
     }
-    if (token !== this.token || this.layers.length < 2) return;
+    if (token !== this.token || this.layers.length < 2) {
+      if (source instanceof HTMLVideoElement) {
+        source.pause();
+        source.removeAttribute('src');
+        source.load();
+      }
+      return;
+    }
 
     const incoming = this.useA ? this.layers[0] : this.layers[1];
     const outgoing = this.useA ? this.layers[1] : this.layers[0];
 
     this.sizeCanvas(incoming);
     incoming.renderer.loadImageElement(source);
+    if (source instanceof HTMLVideoElement) {
+      this.video = source;
+      this.feedVideo(source, incoming.renderer);
+      this.syncVideo();
+    }
     this.live.add(incoming.renderer);
     this.syncLoop();
     try {
@@ -255,11 +325,33 @@ private ensureLayers(): boolean {
   }
 }
 
+function releaseKawarp(canvas: HTMLCanvasElement, renderer: Kawarp): void {
+  try {
+    renderer.stop();
+    renderer.dispose();
+  } catch {
+  }
+  canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext();
+}
+
 function decodeImage(url: string): Promise<HTMLImageElement> {
   const image = new Image();
   image.crossOrigin = 'anonymous';
   image.src = url;
   return image.decode().then(() => image);
+}
+
+function openVideo(url: string): Promise<HTMLVideoElement> {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = url;
+  return new Promise<void>((resolve, reject) => {
+    video.addEventListener('loadeddata', () => resolve(), { once: true });
+    video.addEventListener('error', () => reject(video.error), { once: true });
+  }).then(() => video);
 }
 
 function nextFrame(): Promise<void> {
