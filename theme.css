@@ -1393,7 +1393,7 @@ img.lazy-image.card-image.card-image--rounded-small.lazy-image--loaded {
 }
 
 .artist-pick-image-container,
-.artist-pick-release > div:has(> .artist-pick-release-image) {
+.artist-pick-release>div:has(> .artist-pick-release-image) {
   position: relative;
 
   &::after {
@@ -1480,7 +1480,7 @@ img.lazy-image.card-image.card-image--rounded-small.lazy-image--loaded {
   border-radius: 12px;
 }
 
-.watch-feed-track-footer > div:has(> .watch-feed-track-cover) {
+.watch-feed-track-footer>div:has(> .watch-feed-track-cover) {
   position: relative;
 
   &::after {
@@ -1674,7 +1674,7 @@ button.e-legacy-button.e-legacy-button-tertiary.e-overflow-wrap-anywhere.encore-
   background-color: transparent;
 }
 
-#liquify-settings-gear-btn + .global-nav-bar-icon-row {
+#liquify-settings-gear-btn+.global-nav-bar-icon-row {
   padding-inline-start: 0;
 }
 
@@ -2232,7 +2232,7 @@ span.e-text.encore-text-body-medium.encore-internal-color-text-base {
   box-shadow: var(--liquify-shadow);
 }
 
-.component-shelf-item > .card-container {
+.component-shelf-item>.card-container {
   margin-inline-start: 12px;
 }
 
@@ -2262,4 +2262,8 @@ section.shelf .grid-container.shelf-grid {
 
 .native-ad-card:hover {
   transform: scale(1.03);
+}
+
+img.e-legacy-image.e-legacy-list-row-image.rich-title-shelf-image {
+  border-radius: 12px;
 }
