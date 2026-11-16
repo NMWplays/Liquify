@@ -939,7 +939,8 @@
     return style;
   }
   function updateStyle(id, css) {
-    ensureStyleTag(id).textContent = css;
+    const style = ensureStyleTag(id);
+    if (style.textContent !== css) style.textContent = css;
   }
   var HEADER_IMAGE = ".main-view-container :is(.CFSFpy4cXrwDj5sahXMg, .MBkMkO6BD5uZ1ZM2pvvU)";
   var ARTIST_HEADER_IMAGE = '.main-view-container:has([data-testid="artist-page"]) :is(.CFSFpy4cXrwDj5sahXMg, .MBkMkO6BD5uZ1ZM2pvvU)';
@@ -4178,7 +4179,7 @@ ${HEADER_IMAGE} {
   function installCoverSwipe() {
     (() => {
       const anyWin = window;
-      const STYLE_ID18 = "cs-cover-swipe";
+      const STYLE_ID19 = "cs-cover-swipe";
       const TRACK_ID = "cs-track";
       const TRAVEL = 2;
       const DURATION = Math.round(300 * TRAVEL * 0.9);
@@ -4198,10 +4199,10 @@ ${HEADER_IMAGE} {
       const CONTAINER_SEL = ".BGdcsJhkf4JOCIGu5one";
       const SPOTIFY_COVER_SEL = ".p0UCDR70bGAS2xsqZuTq";
       const SIDEBAR_SEL = ".D0qWErHdvHknfXqr6zOl";
-      document.getElementById(STYLE_ID18)?.remove();
+      document.getElementById(STYLE_ID19)?.remove();
       anyWin.__coverSwipeOff?.();
       const style = document.createElement("style");
-      style.id = STYLE_ID18;
+      style.id = STYLE_ID19;
       style.textContent = `
         ${CONTAINER_SEL}:has(#${TRACK_ID}) > ${SPOTIFY_COVER_SEL} {
             visibility: hidden !important;
@@ -4538,7 +4539,7 @@ ${HEADER_IMAGE} {
         for (const el of unclipped) el.classList.remove(UNCLIP_CLASS, UNCLIP_BOTH_CLASS);
         unclipped = [];
       };
-      const mount = (container) => {
+      const mount2 = (container) => {
         if (track) return;
         mountedContainer = container;
         origPosition = container.style.position;
@@ -4899,10 +4900,10 @@ ${HEADER_IMAGE} {
         if (!shouldMount && track) {
           unmount();
         } else if (shouldMount && !track) {
-          mount(container);
+          mount2(container);
         } else if (track && container && !container.contains(track)) {
           unmount();
-          mount(container);
+          mount2(container);
         }
       }, 200);
       anyWin.__coverSwipeOff = () => {
@@ -4916,7 +4917,7 @@ ${HEADER_IMAGE} {
           if (origNext) Spicetify.Player.next = origNext;
           if (origBack) Spicetify.Player.back = origBack;
         }
-        document.getElementById(STYLE_ID18)?.remove();
+        document.getElementById(STYLE_ID19)?.remove();
         delete anyWin.__coverSwipeOff;
       };
     })();
@@ -5756,23 +5757,20 @@ ${DISC}::after {
       const v2 = getNscValues();
       const rect = player.getBoundingClientRect();
       const cardHeight = card.offsetHeight || v2.height;
-      card.style.top = `${rect.top - cardHeight - v2.gapToPlayer}px`;
-      if (v2.position === "right") {
-        const cardWidth = card.offsetWidth || v2.maxWidth;
-        card.style.left = `${rect.right - cardWidth}px`;
-      } else {
-        card.style.left = `${rect.left}px`;
-      }
+      const top = `${rect.top - cardHeight - v2.gapToPlayer}px`;
+      const left = v2.position === "right" ? `${rect.right - (card.offsetWidth || v2.maxWidth)}px` : `${rect.left}px`;
+      if (card.style.top !== top) card.style.top = top;
+      if (card.style.left !== left) card.style.left = left;
     }
     function updateCard() {
       const v2 = getNscValues();
       if (v2.show === "hide") {
-        if (card) card.classList.add("nsc-hidden");
+        if (card) card.classList.toggle("nsc-hidden", true);
         return;
       }
       const next = getNextTrack();
       if (!next) {
-        if (card) card.classList.add("nsc-hidden");
+        if (card) card.classList.toggle("nsc-hidden", true);
         lastUri = "";
         return;
       }
@@ -5801,16 +5799,13 @@ ${DISC}::after {
       const artistWrap = el.querySelector(".nsc-artist-wrap");
       if (coverEl) {
         if (image) {
-          coverEl.src = image;
-          coverEl.style.display = "";
-        } else {
+          if (coverEl.getAttribute("src") !== image) coverEl.src = image;
+          if (coverEl.style.display) coverEl.style.display = "";
+        } else if (coverEl.style.display !== "none") {
           coverEl.style.display = "none";
         }
-        if (albumUri) {
-          coverEl.setAttribute("data-uri", albumUri);
-        } else if (uri) {
-          coverEl.setAttribute("data-uri", uri);
-        }
+        const dataUri = albumUri || uri;
+        if (dataUri && coverEl.getAttribute("data-uri") !== dataUri) coverEl.setAttribute("data-uri", dataUri);
       }
       if (uri !== lastUri) {
         if (titleLink) {
@@ -5840,7 +5835,7 @@ ${DISC}::after {
           artistInner.appendChild(artistContainer);
         }
       }
-      el.classList.remove("nsc-hidden");
+      el.classList.toggle("nsc-hidden", false);
       repositionCard();
       if (uri !== lastUri) {
         lastUri = uri;
@@ -5906,7 +5901,7 @@ ${DISC}::after {
           cinemaObserver.disconnect();
           cinemaObserver = null;
         }
-        if (card) card.classList.remove("nsc-cinema-hidden");
+        if (card) card.classList.toggle("nsc-cinema-hidden", false);
       }
     }
     setInterval(watchCinema, 1e3);
@@ -5955,7 +5950,7 @@ ${DISC}::after {
     const COVER_SLOT = ".jCysP9BT72Y3IxfwU5gD";
     const CANVAS_VIDEO = ".A6FK744wQHPY6B6S2V1R > video";
     const COVER_CLASS = "liquify-npv-cover";
-    const STYLE_ID18 = "liquify-npv-cover-style";
+    const STYLE_ID19 = "liquify-npv-cover-style";
     function getMode() {
       return readLS(NPVC_MODE_KEY, NPVC_DEFAULTS.mode);
     }
@@ -5980,7 +5975,7 @@ ${DISC}::after {
       covers.forEach((el) => el.classList.add("is-leaving"));
       setTimeout(() => {
         covers.forEach((el) => el.remove());
-        if (!document.querySelector(`.${COVER_CLASS}`)) updateStyle(STYLE_ID18, "");
+        if (!document.querySelector(`.${COVER_CLASS}`)) updateStyle(STYLE_ID19, "");
       }, LEAVE_MS);
     }
     function placeCover(parent, mode) {
@@ -5999,7 +5994,7 @@ ${DISC}::after {
         cover2.append(img2);
         parent.prepend(cover2);
       }
-      cover2.dataset.mode = mode;
+      if (cover2.dataset.mode !== mode) cover2.dataset.mode = mode;
       const img = cover2.querySelector("img");
       if (src && img.src !== src) img.src = src;
     }
@@ -6083,7 +6078,7 @@ ${CANVAS_VIDEO} { filter: blur(${getBlur()}px); }`;
       }
       const parent = mode === "trackInfo" ? document.querySelector(TITLE_BOX) : mode === "outsideTrackInfo" ? document.querySelector(TITLE_ROW) : document.querySelector(COVER_SLOT);
       placeCover(parent, mode);
-      updateStyle(STYLE_ID18, css(mode));
+      updateStyle(STYLE_ID19, css(mode));
     }
     (async () => {
       while (!Spicetify?.Player?.addEventListener) await sleep(300);
@@ -6945,27 +6940,28 @@ ${LINES_ROOT} ${LINE}:not(${EMPTY_LINE}) { margin-bottom: ${margin}px; }` : "";
     const style = document.createElement("style");
     style.id = STYLE_ID17;
     style.textContent = `
-/* Rythora's equaliser: centre-anchored bars whose level swings between 30% and
-   full, each bar at its own fixed tempo and offset (BAR_TIMINGS). The level is a
-   registered property driving the height rather than a scaleY: a scale squashes
-   the rounded ends flat at low levels, the height keeps them round. */
-@property --liquify-eq-level {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 1;
-}
-@keyframes liquify-eq-pulse {
-  from { --liquify-eq-level: 0.3; }
-  to { --liquify-eq-level: 1; }
+/* Centre-anchored bars scaled between their 4px floor and full height, each at
+   its own fixed tempo and offset (BAR_TIMINGS). This loop is the fallback for
+   tracks without an audio analysis. */
+@keyframes liquify-eq-bar {
+  from { transform: scaleY(var(--liquify-eq-low, 0.2)); }
+  to { transform: scaleY(1); }
 }
 .custom-playing-bar,
 .home-visualizer-bar {
-  top: 50%;
-  translate: 0 -50%;
-  height: calc(var(--liquify-eq-full, 16px) * var(--liquify-eq-level));
-  animation: liquify-eq-pulse var(--liquify-eq-duration, 0.6s) ease-in-out var(--liquify-eq-delay, 0s) infinite alternate;
+  transform-origin: 50% 50%;
+  animation: liquify-eq-bar var(--liquify-eq-duration, 0.6s) ease-in-out var(--liquify-eq-delay, 0s) infinite alternate;
 }
+/* Live: a Web Animation built from the song's audio analysis drives each bar
+   (see LiveEq), so the CSS loop steps aside. */
+.${LIVE_CLASS} .custom-playing-bar,
+.${LIVE_CLASS} .home-visualizer-bar {
+  animation: none;
+}
+/* Wherever Spotify swaps its play/pause button in (hover, and a clicked row
+   keeping focus), the bars step aside for it, just as Spotify's image does. */
 [role="row"]:hover [data-liquify-visualizer-wrapper],
+[role="row"]:focus-within [data-liquify-visualizer-wrapper],
 ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
   display: none;
 }
@@ -6983,26 +6979,209 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
     { duration: 0.61, delay: -0.62 }
   ];
   var BAR_COUNT = BAR_TIMINGS.length;
-  var BAR_WIDTH = 3.4;
-  var BAR_PITCH = 4.6;
-  function createBar(className, index, fullH) {
+  var BAR_WIDTH = 4;
+  var BAR_PITCH = 6;
+  var BARS_WIDTH = BAR_PITCH * (BAR_COUNT - 1) + BAR_WIDTH;
+  var LIVE_CLASS = "liquify-eq-live";
+  var BAR_PITCHES = [[0, 1], [2, 3, 4], [5, 6], [7, 8, 9], [10, 11]];
+  var MIN_LEVEL = 0.18;
+  var ATTACK = 30;
+  var RELEASE = 7;
+  function lastStartingBefore(list, t) {
+    let lo = 0, hi = list.length - 1;
+    if (hi < 0 || list[0].start > t) return -1;
+    while (lo < hi) {
+      const mid = lo + hi + 1 >> 1;
+      if (list[mid].start <= t) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  }
+  var SAMPLE_STEP = 0.05;
+  var RESYNC_MS = 1e3;
+  var MAX_DRIFT_MS = 120;
+  var LiveEq = /* @__PURE__ */ (() => {
+    const wrappers = /* @__PURE__ */ new Set();
+    const animations = /* @__PURE__ */ new Map();
+    let analysis = null;
+    let analysisUri = "";
+    let loading = "";
+    let tracks = null;
+    let durationMs = 0;
+    let resyncTimer = 0;
+    async function load(uri) {
+      if (uri === analysisUri) {
+        refresh();
+        return;
+      }
+      if (uri === loading) return;
+      analysis = null;
+      analysisUri = "";
+      tracks = null;
+      if (!uri.startsWith("spotify:track:")) {
+        refresh();
+        return;
+      }
+      loading = uri;
+      try {
+        const id = uri.split(":")[2];
+        const a = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/audio-attributes/v1/audio-analysis/${id}?format=json`);
+        if (loading !== uri) return;
+        if (a?.segments?.length) {
+          const louds = a.segments.map((s2) => s2.loudness_max);
+          const hi = Math.max(...louds);
+          const lo = Math.max(Math.min(...louds), hi - 30);
+          analysis = { segments: a.segments, beats: a.beats ?? [], lo, hi };
+          analysisUri = uri;
+          const last = a.segments[a.segments.length - 1];
+          buildTracks(analysis, a.track?.duration ?? last.start + last.duration);
+        }
+      } catch (e) {
+        console.warn("[Liquify] audio analysis unavailable", e);
+      } finally {
+        if (loading === uri) loading = "";
+        refresh();
+      }
+    }
+    function buildTracks(a, durationSec) {
+      const levels = new Array(BAR_COUNT).fill(MIN_LEVEL);
+      const frames = levels.map(() => []);
+      const steps = Math.max(1, Math.ceil(durationSec / SAMPLE_STEP));
+      for (let n = 0; n <= steps; n++) {
+        const t = Math.min(durationSec, n * SAMPLE_STEP);
+        const goal = targets(a, t);
+        for (let k = 0; k < BAR_COUNT; k++) {
+          const rate = goal[k] > levels[k] ? ATTACK : RELEASE;
+          levels[k] += (goal[k] - levels[k]) * Math.min(1, rate * SAMPLE_STEP);
+          frames[k].push({ transform: `scaleY(${levels[k].toFixed(3)})`, offset: t / durationSec });
+        }
+      }
+      tracks = frames;
+      durationMs = durationSec * 1e3;
+    }
+    function loudnessAt(a, i2, t) {
+      const s2 = a.segments[i2];
+      const peakAt = s2.start + s2.loudness_max_time;
+      if (t < peakAt) {
+        const f3 = s2.loudness_max_time > 0 ? (t - s2.start) / s2.loudness_max_time : 1;
+        return s2.loudness_start + (s2.loudness_max - s2.loudness_start) * f3;
+      }
+      const next = a.segments[i2 + 1];
+      const end = s2.start + s2.duration;
+      const to = next ? next.loudness_start : s2.loudness_max - 20;
+      const f2 = end > peakAt ? Math.min(1, (t - peakAt) / (end - peakAt)) : 1;
+      return s2.loudness_max + (to - s2.loudness_max) * f2;
+    }
+    function targets(a, t) {
+      const i2 = lastStartingBefore(a.segments, t);
+      if (i2 < 0) return BAR_PITCHES.map(() => MIN_LEVEL);
+      const s2 = a.segments[i2];
+      const db = loudnessAt(a, i2, t);
+      const loud = Math.min(1, Math.max(0, (db - a.lo) / (a.hi - a.lo)));
+      const b2 = lastStartingBefore(a.beats, t);
+      const kick = b2 >= 0 ? Math.exp(-(t - a.beats[b2].start) / 0.12) * (a.beats[b2].confidence ?? 0.5) : 0;
+      return BAR_PITCHES.map((group) => {
+        const pitch = Math.max(...group.map((k) => s2.pitches[k] ?? 0));
+        const v2 = loud * (0.35 + 0.65 * pitch) + kick * 0.25;
+        return MIN_LEVEL + (1 - MIN_LEVEL) * Math.min(1, v2);
+      });
+    }
+    function cancel(w2) {
+      animations.get(w2)?.forEach((anim) => anim.cancel());
+      animations.delete(w2);
+    }
+    function sync() {
+      const pos = Math.min(durationMs, Math.max(0, Spicetify.Player.getProgress()));
+      const playing = Spicetify.Player.isPlaying();
+      for (const anims of animations.values()) {
+        for (const anim of anims) {
+          if (Math.abs(Number(anim.currentTime ?? 0) - pos) > MAX_DRIFT_MS) anim.currentTime = pos;
+          if (playing && anim.playState !== "running") anim.play();
+          else if (!playing && anim.playState === "running") anim.pause();
+        }
+      }
+    }
+    function refresh() {
+      const live = !!tracks && analysisUri === Spicetify.Player.data?.item?.uri;
+      for (const w2 of [...wrappers]) {
+        if (!w2.isConnected) {
+          wrappers.delete(w2);
+          cancel(w2);
+          continue;
+        }
+        if (!live) {
+          cancel(w2);
+          w2.classList.remove(LIVE_CLASS);
+          continue;
+        }
+        if (!animations.has(w2)) {
+          const bars = Array.from(w2.children).slice(0, BAR_COUNT);
+          animations.set(w2, bars.map((bar, k) => bar.animate(tracks[k], { duration: durationMs, fill: "both" })));
+        }
+        w2.classList.add(LIVE_CLASS);
+      }
+      if (live && animations.size) sync();
+      const wanted = live && wrappers.size > 0;
+      if (wanted && !resyncTimer) resyncTimer = window.setInterval(() => {
+        for (const w2 of [...wrappers]) if (!w2.isConnected) {
+          wrappers.delete(w2);
+          cancel(w2);
+        }
+        if (wrappers.size === 0) {
+          clearInterval(resyncTimer);
+          resyncTimer = 0;
+          return;
+        }
+        sync();
+      }, RESYNC_MS);
+      if (!wanted && resyncTimer) {
+        clearInterval(resyncTimer);
+        resyncTimer = 0;
+      }
+    }
+    return {
+      install() {
+        const loadCurrent = () => {
+          for (const w2 of wrappers) cancel(w2);
+          void load(Spicetify.Player.data?.item?.uri ?? "");
+        };
+        Spicetify.Player.addEventListener("songchange", loadCurrent);
+        Spicetify.Player.addEventListener("onplaypause", refresh);
+        loadCurrent();
+      },
+      add(wrapper) {
+        wrappers.add(wrapper);
+        refresh();
+      }
+    };
+  })();
+  var liveEqInstalled = false;
+  function ensureLiveEq() {
+    if (liveEqInstalled) return;
+    liveEqInstalled = true;
+    LiveEq.install();
+  }
+  function createBar(className, index, fullH, rectHeight) {
     const bar = document.createElement("div");
     bar.classList.add(className);
     bar.style.position = "absolute";
     bar.style.left = index * BAR_PITCH + "px";
     bar.style.width = BAR_WIDTH + "px";
+    bar.style.height = fullH + "px";
+    bar.style.top = rectHeight / 2 - fullH / 2 + "px";
     bar.style.borderRadius = BAR_WIDTH / 2 + "px";
     bar.style.background = "currentColor";
     const timing = BAR_TIMINGS[index];
-    bar.style.setProperty("--liquify-eq-full", `${fullH}px`);
     bar.style.setProperty("--liquify-eq-duration", `${timing.duration}s`);
     bar.style.setProperty("--liquify-eq-delay", `${timing.delay}s`);
+    bar.style.setProperty("--liquify-eq-low", String(Math.min(1, 4 / fullH)));
     return bar;
   }
   function installPlaylistIndicatorVisualizer() {
     (async function() {
       while (!Spicetify?.Player || !Spicetify?.Player?.data) await sleep(300);
       ensureStyle2();
+      ensureLiveEq();
       let lastSvg = null;
       let lastIndicator = null;
       function removeBars() {
@@ -7023,19 +7202,20 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         const rectHeight = Math.max(20, cellHeight * 1.4);
         const wrapper = document.createElement("div");
         wrapper.style.position = "absolute";
-        wrapper.style.left = "0px";
+        wrapper.style.left = "-6px";
         wrapper.style.top = (cellHeight - rectHeight) / 2 + "px";
-        wrapper.style.width = "22px";
+        wrapper.style.width = BARS_WIDTH + "px";
         wrapper.style.height = rectHeight + "px";
         wrapper.style.overflow = "hidden";
         wrapper.style.pointerEvents = "none";
         wrapper.style.color = "var(--spice-button-active, var(--spice-button, var(--spice-text, #1ed760)))";
         wrapper.dataset.liquifyVisualizerWrapper = "1";
         const fullH = Math.max(8, rectHeight * 0.8);
-        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("custom-playing-bar", i2, fullH));
+        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("custom-playing-bar", i2, fullH, rectHeight));
         parent.insertBefore(wrapper, indicator);
         lastSvg = wrapper;
         lastIndicator = indicator;
+        LiveEq.add(wrapper);
       }
       async function updateIndicator() {
         const indicator = document.querySelector(`${PLAYLIST_EQ}, [data-playing-indicator]`);
@@ -7073,7 +7253,7 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         const imgHeight = measuredH >= 16 ? measuredH : 24;
         const wrapper = document.createElement("div");
         wrapper.style.position = "relative";
-        wrapper.style.width = Math.max(22, imgWidth) + "px";
+        wrapper.style.width = Math.max(BARS_WIDTH, imgWidth) + "px";
         wrapper.style.height = imgHeight + "px";
         wrapper.style.overflow = "hidden";
         wrapper.style.pointerEvents = "none";
@@ -7081,7 +7261,7 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         wrapper.style.flex = "0 0 auto";
         wrapper.dataset.liquifyHomeVisualizer = "1";
         const fullH = Math.max(8, imgHeight * 0.8);
-        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("home-visualizer-bar", i2, fullH));
+        for (let i2 = 0; i2 < BAR_COUNT; i2++) wrapper.appendChild(createBar("home-visualizer-bar", i2, fullH, imgHeight));
         parent.insertBefore(wrapper, img);
         img.style.visibility = "hidden";
         img.style.width = "0px";
@@ -7089,6 +7269,8 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
         img.style.margin = "0";
         img.style.padding = "0";
         homeSvgs.set(img, { wrapper });
+        ensureLiveEq();
+        LiveEq.add(wrapper);
       }
       function updateHomeScreenVisualizer() {
         for (const [img, data] of homeSvgs) {
@@ -11047,164 +11229,193 @@ ${HOME_SHORTCUT}:hover [data-liquify-home-visualizer] {
     installFeatureControllers();
   }
 
+  // src/spotikitNotice.ts
+  var NOTICE_ID = "spotikit-move-notice";
+  var STYLE_ID18 = "spotikit-move-notice-style";
+  var DISMISSED_KEY = "spotikit-move-notice-dismissed";
+  var SITE = "https://spotikit.com/";
+  var SHOW_DELAY_MS = 1500;
+  var RIM = "inset 0 1px 1px rgba(255, 255, 255, 0.55), inset 0 -1px 1px rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.06)";
+  var BOUNCE = "cubic-bezier(0.3, 2.25, 0.32, 1)";
+  var CSS = `
+#${NOTICE_ID} {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+  font-family: var(--font-family, "SpotifyMixUI", "CircularSp", system-ui, sans-serif);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+#${NOTICE_ID}.is-visible { opacity: 1; }
+#${NOTICE_ID} .smn-card {
+  width: min(580px, 100%);
+  box-sizing: border-box;
+  padding: 26px 26px 22px;
+  border-radius: 20px;
+  text-align: center;
+  background: rgba(18, 18, 22, 0.35);
+  isolation: isolate;
+  transform: scale(0.9);
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#${NOTICE_ID}.is-visible .smn-card { transform: scale(1); }
+#${NOTICE_ID} h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+#${NOTICE_ID} p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.85);
+}
+#${NOTICE_ID} .smn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+#${NOTICE_ID} button {
+  border: none;
+  border-radius: 12px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.28s ${BOUNCE}, background-color 0.2s ease;
+}
+#${NOTICE_ID} button:hover { transform: scale(1.05); }
+#${NOTICE_ID} button:active { transform: scale(0.95); }
+
+#${NOTICE_ID}[data-brand="liquify"] .smn-card {
+  backdrop-filter: url(#glass-filter--r1-7) blur(5px) brightness(0.8);
+  box-shadow: var(--liquify-shadow, ${RIM});
+}
+#${NOTICE_ID}[data-brand="liquify"] button { box-shadow: var(--liquify-shadow, ${RIM}); }
+#${NOTICE_ID}[data-brand="liquify"] button:hover { background: rgba(255, 255, 255, 0.08); }
+#${NOTICE_ID}[data-brand="liquify"] .smn-primary,
+#${NOTICE_ID}[data-brand="liquify"] .smn-primary:hover {
+  background: var(--liquify-glow-accent, var(--liquify-accent, var(--spice-button, #1ed760)));
+}
+
+#${NOTICE_ID}[data-brand="glowify"] .smn-card {
+  backdrop-filter: blur(32px);
+  box-shadow: var(--glowify-shadow, 0 0 25px 8px var(--glowify-glow-accent, var(--spice-button, #1ed760)));
+  outline: var(--glowify-outline, none);
+}
+#${NOTICE_ID}[data-brand="glowify"] button {
+  box-shadow: var(--glowify-shadow, 0 0 18px 4px var(--glowify-glow-accent, var(--spice-button, #1ed760)));
+  outline: var(--glowify-outline, none);
+}
+#${NOTICE_ID}[data-brand="glowify"] button:hover { background: rgba(255, 255, 255, 0.08); }
+#${NOTICE_ID}[data-brand="glowify"] .smn-primary,
+#${NOTICE_ID}[data-brand="glowify"] .smn-primary:hover {
+  background: var(--glowify-glow-accent, var(--spice-button, #1ed760));
+}
+
+#${NOTICE_ID}[data-brand="liquid-lyrics"] .smn-card {
+  backdrop-filter: var(--liquid-lyrics-settings-backdrop, blur(20px)) brightness(0.8);
+  box-shadow: var(--liquid-lyrics-surface-shadow, ${RIM});
+  outline: var(--glowify-outline, none);
+}
+#${NOTICE_ID}[data-brand="liquid-lyrics"] button {
+  box-shadow: var(--liquid-lyrics-surface-shadow, ${RIM});
+  outline: var(--glowify-outline, none);
+}
+#${NOTICE_ID}[data-brand="liquid-lyrics"] button:hover { background: rgba(255, 255, 255, 0.08); }
+#${NOTICE_ID}[data-brand="liquid-lyrics"] .smn-primary,
+#${NOTICE_ID}[data-brand="liquid-lyrics"] .smn-primary:hover {
+  background: var(--liquid-lyrics-accent, var(--spice-button, #1ed760));
+}
+`;
+  function isDismissed() {
+    try {
+      return localStorage.getItem(DISMISSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function dismissForever() {
+    try {
+      localStorage.setItem(DISMISSED_KEY, "1");
+    } catch {
+    }
+  }
+  function openSite() {
+    try {
+      window.open(SITE, "_blank", "noopener,noreferrer");
+    } catch {
+      location.href = SITE;
+    }
+  }
+  function mount(brand) {
+    if (document.getElementById(NOTICE_ID) || isDismissed()) return;
+    if (!document.getElementById(STYLE_ID18)) {
+      const style = document.createElement("style");
+      style.id = STYLE_ID18;
+      style.textContent = CSS;
+      document.head.appendChild(style);
+    }
+    const overlay = document.createElement("div");
+    overlay.id = NOTICE_ID;
+    overlay.dataset.brand = brand;
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.innerHTML = `
+    <div class="smn-card">
+      <h2>Liquify, Glowify and Liquid Lyrics have moved to SpotiKit</h2>
+      <p>There won't be any more updates for Spicetify. All three stay available on Spicetify, but they're made for Spotify versions below 1.3.0, so things may break on newer versions.</p>
+      <p>If you want to stay on Spicetify, downgrade Spotify to a version below 1.3.0 (for example 1.2.x) and block Spotify updates.</p>
+      <p>The SpotiKit open beta for Windows is out now, and Linux is coming soon. Everything you had on Spicetify is there too, with lots of improvements, and SpotiKit keeps everything working when Spotify updates.</p>
+      <div class="smn-actions">
+        <button type="button" data-action="never">Don't remind me again</button>
+        <button type="button" data-action="later">Remind me later</button>
+        <button type="button" class="smn-primary" data-action="site">Get SpotiKit</button>
+      </div>
+    </div>`;
+    const close = () => {
+      overlay.classList.remove("is-visible");
+      setTimeout(() => overlay.remove(), 240);
+    };
+    overlay.addEventListener("click", (event) => {
+      const action = event.target.closest("[data-action]")?.getAttribute("data-action");
+      if (action === "site") openSite();
+      if (action === "never") {
+        dismissForever();
+        close();
+      }
+      if (action === "later") close();
+    });
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add("is-visible")));
+  }
+  function showSpotiKitNotice(brand) {
+    const scope = window;
+    if (scope.__spotikitMoveNotice || isDismissed()) return;
+    scope.__spotikitMoveNotice = true;
+    const later = () => setTimeout(() => mount(brand), SHOW_DELAY_MS);
+    if (document.body) later();
+    else document.addEventListener("DOMContentLoaded", later, { once: true });
+  }
+
   // src/theme.ts
   var GLASS_TARGETS = [
-    { selector: ".main-topBar-background" },
-    { selector: ".zddkQq3wlxEOg6aa", blur: 5 },
-    { selector: ".main-trackList-trackListHeader" },
-    { selector: ".z0qdvwslOFVOAihShLIq" },
-    { selector: ".main-globalNav-searchInputContainer .main-topBar-searchBar" },
-    { selector: ".Root__globalNav .main-globalNav-navLink" },
-    { selector: ".Root__globalNav .DoxYADBBjYMvoYwl7QPg" },
-    { selector: ".NJh1B8rnlSUlK7sY", blur: 5 },
-    { selector: ".search-searchCategory-carouselButton" },
-    { selector: ".e-10451-box--tinted" },
-    { selector: ".main-entityHeader-container" },
-    { selector: ".main-entityHeader-imageContainerWrapper" },
-    { selector: ".main-actionBar-ActionBar" },
-    { selector: ".main-nowPlayingView-headerWrapper" },
-    { selector: ".main-nowPlayingView-section" },
-    { selector: ".main-nowPlayingView-trackInfo" },
-    { selector: ".main-contextMenu-tippy" },
-    { selector: ".PromotionButtonTooltip-module_tooltip-animation__cE-rt" },
-    { selector: ".iiX8td2tfVETS09_ button" },
-    { selector: ".gpBiAnJHb1gq46qV" },
-    { selector: ".view-homeShortcutsGrid-shortcut" },
-    { selector: ".main-home-filterChipsSection" },
-    { selector: "dialog" },
-    { selector: ".main-topBar-buddyFeed" },
-    { selector: ".main-actionButtons-button" },
-    { selector: ".main-userWidget-box" },
-    { selector: ".main-globalNav-historyButtons" },
-    { selector: ".EU1ylDKh7s2oMU0g" },
-    { selector: ".VwcQJ4Zsf0JKD3Ls" },
-    { selector: ".KQDsZX3kwwuAFpE8" },
-    { selector: ".KFAJvMWTSagxYXGC" },
-    { selector: ".main-trackList-trackListRow.q8suB2R_XkoUyIeZ" },
-    { selector: ".main-nowPlayingView-actionButton" },
-    { selector: ".main-playlistEditDetailsModal-container" },
-    { selector: ".main-playlistEditDetailsModal-imageDropDownButton" },
-    { selector: ".mpXpsL8sGx7xHzYAb5X7" },
-    { selector: ".QVX8Getzkg44Frgfu0wF" },
-    { selector: ".YeMXHXUM5LesBemNwrlw" },
-    { selector: ".VyDGISqVe_mffhTkwoOB" },
-    { selector: ".os-scrollbar-handle" },
-    { selector: ".JDUQ8zTo6EUgHoYt" },
-    { selector: ".B9ji6YIpLSUHiyxx" },
-    { selector: ".gu0S9_98ZXIo5DaV" },
-    { selector: ".SUjhgyMvTou7TddO" },
-    { selector: ".ERRo1Br0ZQtJYVhz" },
-    { selector: ".LR7w41pC8ccVc11Q" },
-    { selector: ".VsYY0YB3c4lmhoDI" },
-    { selector: ".main-shelf-shelf" },
-    { selector: ".CO34wNPAbR8mpcdD" },
-    { selector: ".JthDv0xUCm8rLhu6" },
-    { selector: ".tlq9Tt69FX4bauLX" },
-    { selector: ".x-settings-section" },
-    { selector: ".fa_L1qIbh7QDDd_h" },
-    { selector: ".TguLwQ522LIEgpK_.IxVxBUbV5M5tGaEx" },
-    { selector: ".HOf9H18Ya0DkJ4_K" },
-    { selector: ".main-nowPlayingView-onTourItemGrid:hover" },
-    { selector: ".qm0mrbeno_z0mpoo" },
-    { selector: ".N3kf5S8O84aeaCZu" },
-    { selector: ".J8g7rZ2MDknxmiYP" },
-    { selector: ".Root__cinema-view", blur: 10 },
-    { selector: ".n5KI8mwa5o8qbn4b" },
-    { selector: ".vado7sbDrEsKhSmn" },
-    { selector: ".main-embedWidgetGenerator-container" },
-    { selector: ".e-10451-box--elevated" },
-    { selector: ".Wzl40f9FIUD91O2o" },
-    { selector: ".mcZzjuAJUvE9X4gX", blur: 10, before: true },
-    { selector: ".Htdd9HRV28F07Dwl" },
-    { selector: ".p67WtOnm9lsRLOu2" },
-    { selector: ".JLkvt5ABTQYw_rG7" },
-    { selector: ".mKvcoJ_veYlcHwOz" },
-    { selector: ".tMcqYZ2om0nYbgrw" },
-    { selector: ".yZCluNwEsPD2zYyY" },
-    { selector: ".Hrce4GF4EEkPJdBI" },
-    { selector: ".EpfIE3glwAOGcNT6" },
-    { selector: ".main-contextMenu-menu", blur: 5, before: true, brightness: 0.7 },
-    // before: a backdrop-filter on the menu itself would make it the containing block
-    // of its nested submenus, which its overflow:auto would then clip
-    { selector: ".l1Ov7CMEDnAqk63BPZvI", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".WwpyuVjaoJUdGwq5SfNQ", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".ViRU4WGs4wlDqn0wUPay", blur: 5, before: true, brightness: 0.7 },
-    { selector: ".xamNkt5LX9o8aL1q", blur: 5, before: true },
-    { selector: ".marketplace-header", before: true },
-    { selector: ".marketplace-tabBar-active" },
-    { selector: ".Dropdown-menu" },
-    { selector: "#marketplace-readme" },
-    { selector: ".liquifySettingsPanel", blur: 5, brightness: 0.8 },
-    { selector: ".liquifySelectMenu", brightness: 0.8 },
-    { selector: ".liquifySectionNavScrollBtn" },
-    { selector: ".liquid-toggle .indicator__liquid", distortion: -14, chromatic: false },
-    { selector: "#liquify-next-song-card" },
-    { selector: ".main-card-card" },
-    { selector: "#liquify-settings-gear-btn" },
-    { selector: ".artist-artistDiscography-topBar.artist-artistDiscography-topBarScrolled" },
-    { selector: ".wJiY1vDfuci2a4db" },
-    { selector: ".oc3OomY6r9UoIEQ0" },
-    { selector: ".oReO3E1Df2odSFHX" },
-    { selector: ".fA6CNWFY1WQBCde9" },
-    { selector: ".main-trackCreditsModal-container" },
-    { selector: ".TGvpaalpJK0BKYYL", blur: 5 },
-    { selector: ".edvX5XPBIXITSQoH" },
-    { selector: ".znOINyqAy7ivIGbQyrbt", blur: 5 },
-    { selector: ".iGRaSZDa1r0m21aF6oZq" },
-    { selector: ".niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV" },
-    { selector: ".yfJeY2Xi99dPOe6fsIha" },
-    { selector: ".qPY4gsmEW6Bq3CnNXAIE .X6OstObvuolbOo_pF6XN" },
-    { selector: ".x0Tk9K1tu0sFwdD5iNF5" },
-    { selector: ".LNpoPDYnF14Zg2Ml0SEK" },
-    { selector: ".yanzBsLcAL8wDzLb8QrU" },
-    { selector: ".QJeB8A9apRR4gkmZlnSM" },
-    { selector: ".UbzV6GmaFXRSbQNfaAZL.ajHBc3IuiQpQkTmGSCcr" },
-    { selector: ".NG0KBybUCTo8_SxXHF3N" },
-    { selector: ".zyugqDUpsiWa8v7oczU1" },
-    { selector: ".h3nJTxxmxIYRP5Aft1CC.QfR1lK07GZcvLZKPXHPP" },
-    { selector: ".e-10860-legacy-box--tinted" },
-    { selector: ".goKxWei7aIJdA857U744" },
-    { selector: ".UbzV6GmaFXRSbQNfaAZL.gmb9NAvXgkg8XFMlNTNR" },
-    { selector: ".qtQr7uPKnGMSxLWgth54" },
-    { selector: ".PhrrxnpQqpJQdqWtlyIj" },
-    { selector: ".zJpJ7DGpm__TAUnMYhfg" },
-    { selector: ".WUHV3yvmh_gdGie5wFp4" },
-    { selector: ".b0kbWFp7K9_JqU7W7FqI" },
-    { selector: ".JOsq_4H0UgeETLvv6Wah" },
-    { selector: ".WbemFLA2iwaTLbng7jdc" },
-    { selector: ".ZAU9wS6jqWfJxKTQvyfH" },
-    { selector: ".mhioaci0tNPZ1eN4nXbB" },
-    { selector: ".RI3lDBrimDPsR0FtLS3k" },
-    { selector: ".VBHQyT1xMnuK6q3v04tx.zsGE6QfwHX7ZUleMODWP .nVyDKVjzDUKN8CY7oili" },
-    { selector: ".EBmKeFEo2GOt4N3G7uoi" },
-    { selector: ".POvZRseCI_oO9LIu3eiN" },
-    { selector: ".wzC6IOFGHM0mopyh8H3D" },
-    { selector: ".EYVg8yEsGD4dWVtkJFso" },
-    { selector: ".fTcPW1opaLJf91ygHA_P" },
-    { selector: ".OBaDjdU835YN09jcSuBy.t7AyCiAhZeUyLQUW23IY" },
-    { selector: ".RHKi_XpRWCqN6ta7KH69" },
-    { selector: ".sui3ec_WMaK0b1S8PPwz" },
-    { selector: ".zOp0H9s6myIHE7tnkS5m" },
-    { selector: ".qx2q2w0DYin744m8sU7H" },
-    { selector: ".r3MRxhtDijiSmIPdwAxG" },
-    { selector: ".PhrrxnpQqpJQdqWtlyIj, div:has(> .esdT7NhwpvXK5y8x_AhA)" },
-    { selector: ".pK7Xdjf1GUBZLTBDFnlF" },
-    { selector: ".VvAoS6GSNFNNkXztQUOF" },
-    { selector: ".Gs2EwEu259e_Q_vcVyCx", blur: 10 },
-    { selector: ".X8VwVPlDFxPubWkbfRZ2" },
-    { selector: ".w_63eGohnNUi98P84l_b" },
-    { selector: ".cPCPoUfABWzF8MgTHeZv" },
-    { selector: ".tlJt8JO80alw0Nlw6iW9" },
-    { selector: ".suqvnFaPhz7I0S4ZaIqe" },
-    { selector: ".ZXbCSxeqhRFKY9tjH_Kd" },
-    { selector: ".J11WGNd9DCUb60Rvdc2A" },
-    { selector: ".e-10860-legacy-box--elevated" },
-    { selector: "._tooltip-animation_igq95_1" },
-    { selector: ".lWpOlKmFJB1FKmwsccav" },
-    { selector: ".YpbkD1KYiSUHMMIc3FEe" },
-    { selector: ".kfrC7VggzHlLjrTehQdA" }
+    { selector: ".main-topBar-background" }
   ];
   function start() {
+    showSpotiKitNotice("liquify");
     installGlassDevtools();
     applyGlass(GLASS_TARGETS);
     startBackground();
