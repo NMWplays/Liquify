@@ -1,4 +1,4 @@
-import { Kawarp } from '@kawarp/core';
+import { WorkerKawarp, canUseWorkerKawarp } from '../../kawarp/workerKawarp';
 import { clamp, readNum } from '../shared';
 import { readBackgroundAppearance } from './backgroundAppearance';
 import { onStop } from '../../lifecycle/runtime';
@@ -30,11 +30,9 @@ export const KAWARP_RANGES: Record<KawarpKey, { min: number; max: number }> = {
 };
 
 const CROSSFADE_MS = 600;
-const TARGET_FPS = 60;
 const MAX_KAWARP_PX = 1280;
 const MAX_DPR = 1.5;
 const RESIZE_SETTLE_MS = 160;
-const MAX_FRAME_STEP_MS = 250;
 const VIDEO_FPS = 30;
 
 function read(key: KawarpKey): number {
@@ -80,7 +78,7 @@ export function resetKawarpDefaults(): void {
 export class KawarpBackdrop {
   readonly el: HTMLElement;
 
-  private layers: Array<{ canvas: HTMLCanvasElement; renderer: Kawarp }> = [];
+  private layers: Array<{ canvas: HTMLCanvasElement; renderer: WorkerKawarp }> = [];
   private useA = true;
   private swapTimer = 0;
   private resizeTimer = 0;
@@ -91,12 +89,7 @@ export class KawarpBackdrop {
   private active = false;
   private failed = false;
   private failedUrls = new Set<string>();
-
-  private live = new Set<Kawarp>();
-  private rafId = 0;
-  private lastFrame = 0;
-  private clock = 0;
-  private speed = 1;
+  private live = new Set<WorkerKawarp>();
   private video: HTMLVideoElement | null = null;
   private videoFrame = 0;
 
@@ -116,12 +109,10 @@ export class KawarpBackdrop {
     this.token++;
     window.clearTimeout(this.swapTimer);
     window.clearTimeout(this.resizeTimer);
-    if (this.rafId) cancelAnimationFrame(this.rafId);
-    this.rafId = 0;
     this.live.clear();
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    for (const layer of this.layers) releaseKawarp(layer.canvas, layer.renderer);
+    for (const layer of this.layers) layer.renderer.dispose();
     this.layers = [];
   }
 
@@ -139,7 +130,6 @@ export class KawarpBackdrop {
 
   applyOptions(): void {
     const options = kawarpOptions();
-    this.speed = options.animationSpeed;
     if (this.layers.length === 0) return;
     const next = JSON.stringify(options);
     if (next === this.lastOptions) return;
@@ -150,7 +140,7 @@ export class KawarpBackdrop {
   show(url: string, video = false): void {
     if (!this.ensureLayers()) return;
     this.applyOptions();
-    const key = video ? `video:${url}` : url;
+    const key = video ? 'video:' + url : url;
     if (key === this.lastUrl) return;
     this.lastUrl = key;
     void this.swap(url, video);
@@ -174,62 +164,50 @@ export class KawarpBackdrop {
     video.load();
   }
 
-  private feedVideo(video: HTMLVideoElement, renderer: Kawarp): void {
+  private feedVideo(video: HTMLVideoElement, renderer: WorkerKawarp): void {
     let last = 0;
     const step = (now: number) => {
       if (this.video !== video) return;
       this.videoFrame = video.requestVideoFrameCallback(step);
       if (now - last < 1000 / VIDEO_FPS - 4) return;
       last = now;
-      try {
-        renderer.loadImageElement(video);
-      } catch {
-      }
+      void renderer.load(video, true).catch(() => {});
     };
     this.videoFrame = video.requestVideoFrameCallback(step);
   }
 
-private syncLoop(): void {
-    const wanted = this.active && this.live.size > 0 && !document.hidden;
-    if (wanted && !this.rafId) {
-      this.lastFrame = performance.now();
-      this.rafId = requestAnimationFrame(this.tick);
-    } else if (!wanted && this.rafId) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = 0;
-    }
+  private syncLoop(): void {
+    const playing = this.active && !document.hidden;
+    for (const layer of this.layers) layer.renderer.play(playing && this.live.has(layer.renderer));
   }
 
-  private tick = (now: number): void => {
-    this.rafId = requestAnimationFrame(this.tick);
-    const elapsed = now - this.lastFrame;
-    if (elapsed < 1000 / TARGET_FPS - 4) return;
-    this.lastFrame = now;
-    this.clock += (Math.min(elapsed, MAX_FRAME_STEP_MS) / 1000) * this.speed;
-    for (const renderer of this.live) {
-      try {
-        renderer.renderFrame(this.clock);
-      } catch {
-      }
-    }
-  };
-
-private ensureLayers(): boolean {
+  private ensureLayers(): boolean {
     if (this.failed) return false;
     if (this.layers.length === 2) return true;
 
+    const fail = (error?: unknown) => {
+      if (this.failed) return;
+      console.warn('[Liquify] Kawarp unavailable, falling back to the static background.', error);
+      this.failed = true;
+      for (const layer of this.layers) layer.renderer.dispose();
+      this.layers = [];
+      this.el.replaceChildren();
+      window.dispatchEvent(new Event('liquifyBackgroundChange'));
+    };
+
+    if (!canUseWorkerKawarp()) {
+      fail();
+      return false;
+    }
     try {
       this.layers = [0, 1].map(() => {
         const canvas = document.createElement('canvas');
         canvas.className = 'liquify-kawarp-canvas';
         this.el.appendChild(canvas);
-        return { canvas, renderer: new Kawarp(canvas, kawarpOptions()) };
+        return { canvas, renderer: new WorkerKawarp(canvas, kawarpOptions(), 'liquify-background', fail) };
       });
     } catch (error) {
-      console.warn('[Liquify] Kawarp unavailable, falling back to the static background.', error);
-      this.failed = true;
-      this.el.replaceChildren();
-      this.layers = [];
+      fail(error);
       return false;
     }
 
@@ -252,12 +230,14 @@ private ensureLayers(): boolean {
       window.dispatchEvent(new Event('liquifyBackgroundChange'));
       return;
     }
+    const release = () => {
+      if (!(source instanceof HTMLVideoElement)) return;
+      source.pause();
+      source.removeAttribute('src');
+      source.load();
+    };
     if (token !== this.token || this.layers.length < 2) {
-      if (source instanceof HTMLVideoElement) {
-        source.pause();
-        source.removeAttribute('src');
-        source.load();
-      }
+      release();
       return;
     }
 
@@ -265,7 +245,19 @@ private ensureLayers(): boolean {
     const outgoing = this.useA ? this.layers[1] : this.layers[0];
 
     this.sizeCanvas(incoming);
-    incoming.renderer.loadImageElement(source);
+    try {
+      await incoming.renderer.load(source);
+    } catch {
+      release();
+      this.failedUrls.add(url);
+      if (token === this.token) this.lastUrl = '';
+      window.dispatchEvent(new Event('liquifyBackgroundChange'));
+      return;
+    }
+    if (token !== this.token) {
+      release();
+      return;
+    }
     if (source instanceof HTMLVideoElement) {
       this.video = source;
       this.feedVideo(source, incoming.renderer);
@@ -273,10 +265,6 @@ private ensureLayers(): boolean {
     }
     this.live.add(incoming.renderer);
     this.syncLoop();
-    try {
-      incoming.renderer.renderFrame(this.clock);
-    } catch {
-    }
     await nextFrame();
     if (token !== this.token) return;
 
@@ -304,7 +292,7 @@ private ensureLayers(): boolean {
     this.resizeObserver.observe(this.el);
   }
 
-  private sizeCanvas(layer: { canvas: HTMLCanvasElement; renderer: Kawarp }): void {
+  private sizeCanvas(layer: { canvas: HTMLCanvasElement; renderer: WorkerKawarp }): void {
     const width = this.el.clientWidth;
     const height = this.el.clientHeight;
     if (width < 2 || height < 2) return;
@@ -312,26 +300,8 @@ private ensureLayers(): boolean {
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     const longest = Math.max(width, height) * dpr;
     const factor = longest > MAX_KAWARP_PX ? (MAX_KAWARP_PX / longest) * dpr : dpr;
-    const target = { width: Math.round(width * factor), height: Math.round(height * factor) };
-
-    if (layer.canvas.width === target.width && layer.canvas.height === target.height) return;
-    layer.canvas.width = target.width;
-    layer.canvas.height = target.height;
-    layer.renderer.resize();
-    try {
-      layer.renderer.renderFrame(this.clock);
-    } catch {
-    }
+    layer.renderer.setSize(Math.round(width * factor), Math.round(height * factor));
   }
-}
-
-function releaseKawarp(canvas: HTMLCanvasElement, renderer: Kawarp): void {
-  try {
-    renderer.stop();
-    renderer.dispose();
-  } catch {
-  }
-  canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext();
 }
 
 function decodeImage(url: string): Promise<HTMLImageElement> {

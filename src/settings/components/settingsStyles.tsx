@@ -1001,7 +1001,7 @@ export function ColorPicker(props: { value: string; onChange: (hex: string) => v
     const recalc = () => {
       const btn = btnRef.current as HTMLElement | null;
       if (!btn) return;
-      const r = btn.getBoundingClientRect();
+      const r = layoutRect(btn);
       const margin = 6;
 
       const panel = btn.closest?.(".liquifySettingsPanel") as HTMLElement | null;
@@ -1191,7 +1191,7 @@ export function FontPicker(props: { value: string; onChange: (value: string) => 
     const recalc = () => {
       const btn = btnRef.current as HTMLElement | null;
       if (!btn) return;
-      const r = btn.getBoundingClientRect();
+      const r = layoutRect(btn);
       const panel = btn.closest?.(".liquifySettingsPanel") as HTMLElement | null;
       const body = (panel?.querySelector?.(".liquifySettingsBody") as HTMLElement | null) ?? null;
       const bounds = body?.getBoundingClientRect
@@ -1561,6 +1561,15 @@ export function BackgroundLibrary(props: {
   return ReactDOM?.createPortal ? ReactDOM.createPortal(tree, document.body) : tree;
 }
 
+function layoutRect(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2, width: w, height: h };
+}
+
 export function Select(props: { value: string; options: Option[]; onChange: (value: string) => void }) {
   const btnRef = React.useRef(null as any);
   const menuRef = React.useRef(null as any);
@@ -1608,7 +1617,7 @@ export function Select(props: { value: string; options: Option[]; onChange: (val
       const btn = btnRef.current as HTMLElement | null;
       if (!btn) return;
 
-      const r = btn.getBoundingClientRect();
+      const r = layoutRect(btn);
       const margin = 6;
 
       const panel = btn.closest?.(".liquifySettingsPanel") as HTMLElement | null;

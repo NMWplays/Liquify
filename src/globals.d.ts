@@ -16,3 +16,8 @@ interface LiquifyGlassControls {
 interface Window {
   liquifyGlass?: LiquifyGlassControls;
 }
+
+declare module '*?worker' {
+  const source: string;
+  export default source;
+}
